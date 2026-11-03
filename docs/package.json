@@ -1,0 +1,14 @@
+{
+  "name": "provelox-docs",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev --port 5180",
+    "build": "vitepress build",
+    "preview": "vitepress preview --port 5180"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.4"
+  }
+}

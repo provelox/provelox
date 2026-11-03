@@ -1,0 +1,13 @@
+/* Provelox blue, taken from the console's primary colour. */
+:root {
+  --vp-c-brand-1: #3b6fe0;
+  --vp-c-brand-2: #4f83f1;
+  --vp-c-brand-3: #4f83f1;
+  --vp-c-brand-soft: rgba(79, 131, 241, 0.14);
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #3aa0f0 20%, #4f6ef1);
+}
+.dark {
+  --vp-c-brand-1: #6b9bf5;
+  --vp-c-brand-2: #4f83f1;
+}

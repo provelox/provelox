@@ -1,0 +1,65 @@
+{
+  "name": "Acme templates",
+  "templates": [
+    {
+      "id": "acme-docs",
+      "name": "Acme Docs",
+      "description": "Our internal documentation site.",
+      "category": "Web",
+      "icon": "nginx",
+      "mainService": "docs",
+      "publicWeb": true,
+      "compose": "services:\n  docs:\n    image: nginx:alpine\n    restart: unless-stopped\n    x-provelox:\n      expose: true\n      port: 80\n"
+    },
+    {
+      "id": "acme-cache",
+      "name": "Acme Cache",
+      "description": "A Redis with a password you choose, for our services to share.",
+      "category": "Database",
+      "icon": "redis",
+      "mainService": "redis",
+      "port": 6379,
+      "connect": "redis://:{REDIS_PASSWORD}@{host}:{port}",
+      "variables": [
+        {
+          "key": "REDIS_PASSWORD",
+          "label": "Password",
+          "kind": "secret",
+          "minLength": 16
+        }
+      ],
+      "compose": "services:\n  redis:\n    image: redis:7\n    restart: unless-stopped\n    command: [\"redis-server\", \"--requirepass\", \"${REDIS_PASSWORD}\"]\n    volumes:\n      - data:/data\nvolumes:\n  data:\n"
+    },
+    {
+      "id": "acme-postgres",
+      "name": "Postgres with Adminer",
+      "description": "A database with a web page to browse it.",
+      "category": "Database",
+      "icon": "postgresql",
+      "mainService": "db",
+      "port": 5432,
+      "connect": "postgresql://{DB_USER}:{DB_PASSWORD}@{host}:{port}/{DB_NAME}",
+      "publicWeb": true,
+      "variables": [
+        {
+          "key": "DB_USER",
+          "label": "Username",
+          "description": "The database owner.",
+          "default": "app"
+        },
+        {
+          "key": "DB_NAME",
+          "label": "Database name",
+          "default": "app"
+        },
+        {
+          "key": "DB_PASSWORD",
+          "label": "Password",
+          "description": "Generated for you. Replace it if you like.",
+          "kind": "secret"
+        }
+      ],
+      "compose": "services:\n  db:\n    image: postgres:17\n    restart: unless-stopped\n    environment:\n      POSTGRES_USER: ${DB_USER}\n      POSTGRES_PASSWORD: ${DB_PASSWORD}\n      POSTGRES_DB: ${DB_NAME}\n    volumes:\n      - data:/var/lib/postgresql/data\n  adminer:\n    image: adminer:latest\n    restart: unless-stopped\n    depends_on: [db]\n    x-provelox:\n      expose: true\n      port: 8080\nvolumes:\n  data:\n"
+    }
+  ]
+}

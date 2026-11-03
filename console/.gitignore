@@ -1,0 +1,14 @@
+node_modules
+.next
+.env
+.env.local
+*.tsbuildinfo
+next-env.d.ts
+
+# Local data (CI deploy keys)
+data
+
+# Playwright
+/test-results
+/playwright-report
+/e2e/.auth.json

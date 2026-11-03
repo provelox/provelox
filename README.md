@@ -45,5 +45,5 @@ other, and contributors are welcome to use such tools under the same rule.
 
 ## License
 
-Provelox is licensed under the [Apache License 2.0](LICENSE). Contributions are welcome under the
-[Developer Certificate of Origin](CONTRIBUTING.md). Copyright 2026 Floms, Inc.
+Provelox is licensed under the [Apache License 2.0](LICENSE). Issues and ideas are welcome. Pull requests are
+not being accepted yet: see [CONTRIBUTING.md](CONTRIBUTING.md). Copyright 2026 Floms, Inc.

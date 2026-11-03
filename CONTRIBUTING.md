@@ -1,5 +1,10 @@
 # Contributing to Provelox
 
+> **Pull requests are not being accepted yet.** For now, please open an
+> [issue](https://github.com/provelox/provelox/issues): a bug report, an idea or a question. We are working out how
+> outside changes will flow into the project, and this page will say when pull requests are welcome. The rest of it
+> describes how contributions will work.
+
 Thanks for helping. Provelox is licensed under the [Apache License 2.0](LICENSE). Contributions are accepted under the
 same license, and you keep the copyright on what you write.
 

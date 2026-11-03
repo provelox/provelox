@@ -10,8 +10,11 @@ hero:
       text: Get started
       link: /guide/install
     - theme: alt
-      text: Move from CapRover
+      text: Coming from another platform?
       link: /migration/overview
+    - theme: alt
+      text: View on GitHub
+      link: https://github.com/provelox/provelox
 
 features:
   - title: Built on Docker Swarm

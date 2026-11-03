@@ -1,12 +1,34 @@
 import { defineConfig } from 'vitepress';
 
+/** Where the docs are published, where the source lives, and the project's own site. */
+const HOST = 'https://docs.provelox.com';
+const REPO = 'https://github.com/provelox/provelox';
+const WEBSITE = 'https://provelox.com';
+
 export default defineConfig({
   title: 'Provelox',
   description: 'Deploy faster. Scale smarter. Documentation for Provelox.',
+  sitemap: { hostname: HOST },
+  // the folder's own README is for people working on the docs, not a page of them
+  srcExclude: ['README.md'],
   lang: 'en-US',
   cleanUrls: true,
   lastUpdated: true,
-  head: [['link', { rel: 'icon', href: '/icon.svg' }]],
+  head: [
+    ['link', { rel: 'icon', href: '/icon.svg' }],
+    ['meta', { property: 'og:site_name', content: 'Provelox documentation' }],
+  ],
+  // every page says which address is its own, so the same page is never counted twice
+  transformPageData(pageData) {
+    const path = pageData.relativePath
+      .replace(/(^|\/)index\.md$/, '$1')
+      .replace(/\.md$/, '');
+    pageData.frontmatter.head ??= [];
+    pageData.frontmatter.head.push([
+      'link',
+      { rel: 'canonical', href: `${HOST}/${path}` },
+    ]);
+  },
   themeConfig: {
     logo: '/icon.svg',
     siteTitle: 'Provelox',
@@ -14,7 +36,9 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/introduction' },
       { text: 'Migration', link: '/migration/overview' },
       { text: 'Reference', link: '/reference/cli' },
+      { text: 'Website', link: WEBSITE },
     ],
+    socialLinks: [{ icon: 'github', link: REPO }],
     sidebar: [
       {
         text: 'Guide',
@@ -57,6 +81,9 @@ export default defineConfig({
     ],
     search: { provider: 'local' },
     outline: [2, 3],
-    footer: { message: 'Documentation in progress.' },
+    footer: {
+      message: `Released under the <a href="${REPO}/blob/main/LICENSE">Apache License 2.0</a>.`,
+      copyright: 'Copyright © 2026 Floms, Inc.',
+    },
   },
 });

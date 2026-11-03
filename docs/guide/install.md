@@ -129,6 +129,21 @@ Run the install command again with the newer tag. Data, sessions and your apps a
 when the API starts. Use `--http-port` and `--https-port` if ports 80 and 443 are taken. A newer version can update the stored data, so
 an older one may not read it back: copy the data volume first (below) if you might want to return.
 
+#### If your server runs the old image name
+
+Before 0.5.0 the image was published as `ghcr.io/floms/provelox`. It is now `ghcr.io/provelox/provelox`, and it is public:
+pulling it needs no sign-in. A console update keeps the image name the server is running, so a server on the old name
+cannot update itself to 0.5.0 or later. Move it once by hand, with the same options as the first install:
+
+```bash
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+  ghcr.io/provelox/provelox:0.5.0 install \
+  --root-domain example.com --acme-email you@example.com
+```
+
+Data, sessions and apps are kept, as in any upgrade, and the sign-in you gave `install` for the old private image is not
+needed for the new one. After this one run, updates from the console work as before.
+
 ::: warning Before 1.0
 Provelox is at version 0.x: the API, the settings it stores and the command line can still change between minor versions
 (`0.2` to `0.3`). Look through the changes before moving up a minor version, and copy the data volume

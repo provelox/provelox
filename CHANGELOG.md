@@ -4,7 +4,12 @@ What changed in each release, newest first. Security fixes say what was wrong an
 
 ## 0.5.0
 
-Tried as release candidates `0.5.0-rc.1` to `0.5.0-rc.8` first.
+The first public release of Provelox, tried as release candidates first.
+
+### Open source, and a new image name
+- **Provelox is open source**, under the Apache License 2.0. The source is at [github.com/provelox/provelox](https://github.com/provelox/provelox). Issues are welcome; pull requests are not being accepted yet.
+- **The image has a new name: `ghcr.io/provelox/provelox`** (it was `ghcr.io/floms/provelox`), and it is public. **A server that runs the old name cannot update itself to 0.5.0**, because an update keeps the image name it is running. Move it once by hand: run `install` from the new image with the same options as the first install (see Install, Upgrading). After that, updates from the console work as before.
+- **The image holds the API, the proxy setup and the console.** The `hub` command it once had is gone (the hub has its own image). `install`, `join` and the other commands are unchanged.
 
 ### Console
 - **Large database dumps move through the server folder too.** The Database card (PostgreSQL, MySQL, MariaDB) gains **Save a backup on the server**, which writes the dump into the import folder (no size limit, nothing through the browser, the app keeps running; "every database on the server" is optional) and shows its path and the `rsync` command to fetch it, and **Restore** becomes a menu: **From a file on the server** (the dumps in the folder with size and age, the `rsync` command to put one there, refresh, delete with confirmation, then add to what is there, or replace it after typing the app's name) or **From my computer** (the upload, which now warns above 200 MB and is not offered above 2 GB). A dump is saved under a hidden name and only appears in the folder when the tool has finished successfully; a failed dump leaves no file. Volume archives and dumps stay apart: a volume's dialog lists only `.tar.gz`/`.tgz` files and a database's only `.dump`/`.sql`/`.sql.gz`. See Guide → Database backup, Moving to a new server.
@@ -88,7 +93,7 @@ Tried as release candidates `0.5.0-rc.1` to `0.5.0-rc.8` first.
 - **What changed.** The console is on Next.js 16.4.3. Its image optimizer is also switched off (the only image it shows is already served as is), so that endpoint is gone. In the API, `body-parser` is updated and `multer` is held at 2.5.0 (the API takes no file uploads, so it was not reachable). A remaining advisory in zod 3.x (memory use when checking very large arrays) is not fixed here: every collection the console checks has a size limit, and the fix is a major version. It is tracked for its own change.
 
 ### Image and releases
-- **A smaller image.** The platform image is 447 MB, down from 668 MB: the image optimizer's native libraries, other platforms' SQLite binaries, source maps and type files are left out, and identical files are stored once. Behaviour is unchanged (checked against the previous image: the same console responses, the same command help).
+- **A smaller image.** The image optimizer's native libraries, other platforms' SQLite binaries, source maps and type files are left out, and identical files are stored once. Behaviour is unchanged (checked against the previous image: the same console responses, the same command help).
 - **Faster release builds.** Each CPU family now builds on its own kind of machine (the Arm build no longer runs under emulation) with a build cache, and the two are joined into one multi-platform image under the same tags.
 - **Dependabot** opens weekly update pull requests for the API, console, docs and the GitHub Actions the workflows use, with minor and patch updates grouped.
 

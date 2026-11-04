@@ -2,7 +2,9 @@
 
 What changed in each release, newest first. Security fixes say what was wrong and who could have used it.
 
-## Unreleased
+## 0.5.1
+
+The first release that can tell you about the next one, and update itself from the console. A server that still runs 0.5.0 does not look for releases yet, so it will not tell you about this one: update it once with the install command (see Install, Upgrading), or from the hub. From here on, the console does it.
 
 ### Console
 - **Update Provelox from the console.** Settings → Updates shows the release the server runs and the newest stable one. When a newer release exists, a notice appears above every page ("not now" is remembered in the browser for that release), and **Update to …** moves the console and the API to it after a confirmation that says what happens: about a minute unavailable, apps keep running, and Docker puts the old release back if the new one does not start. The page then follows the restart and says how it ended, including when Docker rolled it back. Before 1.0 a minor release asks you to copy the data volume first. A server that runs the image under its old name is told how to move it, instead of being offered a button that could not work.

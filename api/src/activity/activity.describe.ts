@@ -22,6 +22,7 @@ const NOT_CHANGES = new Set([
   'POST /projects/preview',
   'POST /registries/check',
   'POST /system/image-updates/check',
+  'POST /system/release/check',
   'POST /system/notifications/webhooks/:id/test',
 ]);
 
@@ -330,6 +331,13 @@ export function describeRequest(
       return at(derive(method, route).replace(/^system\./, 'platform.'), null);
     case 'POST /system/update':
       return at('platform.update', null, text(b.version, 40));
+    case 'PUT /system/release/settings':
+      return at(
+        b.enabled === true
+          ? 'platform.update-check.on'
+          : 'platform.update-check.off',
+        null,
+      );
     case 'POST /system/cluster/join/rotate':
       return at('cluster.join-token.rotate', null);
     case 'PATCH /system/cluster/nodes/:id':

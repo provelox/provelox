@@ -98,6 +98,8 @@ const WORDS: Record<string, string> = {
   'platform.placeholder-page.set': 'changed the placeholder page',
   'platform.error-pages.set': 'changed the error pages',
   'platform.blueprint.set': 'applied a blueprint',
+  'platform.update-check.on': 'turned on checking for new releases',
+  'platform.update-check.off': 'turned off checking for new releases',
   'platform.update': 'updated the platform',
   'cluster.join-token.rotate': 'rotated the join token',
   'cluster.node.update': 'changed a server',

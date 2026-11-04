@@ -1,6 +1,7 @@
 import {
   Bell,
   Boxes,
+  CircleArrowUp,
   FileText,
   Globe,
   HardDrive,
@@ -220,6 +221,23 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         icon: Server,
         description: 'The machines in the cluster, and adding more.',
         keywords: ['nodes', 'swarm', 'cluster', 'join', 'drain'],
+      },
+      {
+        id: 'updates',
+        label: 'Updates',
+        href: '/settings/updates',
+        icon: CircleArrowUp,
+        description:
+          'Which release this server runs and whether a newer one is out. An update never starts by itself.',
+        keywords: [
+          'update',
+          'upgrade',
+          'release',
+          'version',
+          'new version',
+          'self-update',
+          'latest',
+        ],
       },
       {
         id: 'platform-services',

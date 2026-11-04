@@ -2,6 +2,14 @@
 
 What changed in each release, newest first. Security fixes say what was wrong and who could have used it.
 
+## Unreleased
+
+### Console
+- **Update Provelox from the console.** Settings → Updates shows the release the server runs and the newest stable one. When a newer release exists, a notice appears above every page ("not now" is remembered in the browser for that release), and **Update to …** moves the console and the API to it after a confirmation that says what happens: about a minute unavailable, apps keep running, and Docker puts the old release back if the new one does not start. The page then follows the restart and says how it ended, including when Docker rolled it back. Before 1.0 a minor release asks you to copy the data volume first. A server that runs the image under its old name is told how to move it, instead of being offered a button that could not work.
+
+### API
+- **`GET /v1/system/release`** (read) says whether a newer stable release exists: `current`, `latest`, `updateAvailable`, `step`, `careful`, `notesUrl`, `checkedAt`, `error`, `imageMoved`, `canUpdate`. The server asks GitHub at most every six hours (every 30 minutes after a failure), sending only its address and the user agent `provelox/<release>`; a release candidate is never offered. `POST /v1/system/release/check` (operate) asks again now, once a minute at most, and `PUT /v1/system/release/settings` (admin) turns checking on or off. `UPDATE_CHECK=false` turns it off for good, and `RELEASES_URL` changes where it asks. Nothing is installed by this: `POST /v1/system/update` stays the only way to update.
+
 ## 0.5.0
 
 The first public release of Provelox, tried as release candidates first.

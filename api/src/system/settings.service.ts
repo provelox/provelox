@@ -69,4 +69,9 @@ export class SettingsService {
   defaultSubdomainForNewApps(): boolean {
     return this.get<boolean>('defaultSubdomainForNewApps') ?? false;
   }
+
+  /** Whether this server may look for newer releases (on unless an admin turned it off; the environment can forbid it too) */
+  updateCheck(): boolean {
+    return this.get<boolean>('updateCheck') ?? true;
+  }
 }

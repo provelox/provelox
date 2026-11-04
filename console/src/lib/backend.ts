@@ -270,6 +270,34 @@ export async function loadImageUpdates(
 }
 
 /** What every running app uses right now, by app name. Stopped apps are not in it. */
+/** Whether the project has published a release newer than the one this server runs (`GET /v1/system/release`). */
+export interface ReleaseStatus {
+  /** Checking is on: the environment allows it and an admin has not turned it off */
+  enabled: boolean;
+  /** The environment (UPDATE_CHECK=false) forbids checking, so it cannot be turned on from here */
+  lockedOff: boolean;
+  /** The release this server runs; null for a build that is not a release */
+  current: string | null;
+  latest: string | null;
+  updateAvailable: boolean;
+  step: 'major' | 'minor' | 'patch' | null;
+  /** Before 1.0, a minor step can change the stored data: copy it first */
+  careful: boolean;
+  notesUrl: string | null;
+  publishedAt: string | null;
+  checkedAt: string | null;
+  checking: boolean;
+  error: string | null;
+  /** This server runs the image under its old name, which gets no more releases */
+  imageMoved: boolean;
+  /** The API runs as a Swarm service, so it can update itself */
+  canUpdate: boolean;
+}
+
+export async function loadRelease(token: string) {
+  return api<ReleaseStatus>('system/release', { token });
+}
+
 export type UsageByApp = Record<
   string,
   { instances: number; cpuPercent: number; memoryBytes: number }

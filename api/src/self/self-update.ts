@@ -10,7 +10,7 @@ import { registryOf } from '../registries/registry-domain';
 import { SELF_APP, SELF_SERVICE } from './api-spec';
 import { CONSOLE_APP, CONSOLE_SERVICE } from './console-spec';
 
-const VERSION = /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]{1,20})?$/;
+export const VERSION = /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]{1,20})?$/;
 
 /** The same image on another tag: registry/name:0.2.6 -> registry/name:0.2.7. A registry port is not a tag. */
 /**

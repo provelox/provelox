@@ -8,7 +8,7 @@ import { formatWait, nextDelayMs, SLOW_AFTER_SECONDS } from '@/lib/waiting';
 
 type Api = 'checking' | 'down' | 'ok';
 
-async function apiIsUp(): Promise<boolean | null> {
+export async function apiIsUp(): Promise<boolean | null> {
   try {
     const res = await fetch('/api/health', { cache: 'no-store' });
     // The console answered but could not say the API is up (it is itself unwell): the API counts as down

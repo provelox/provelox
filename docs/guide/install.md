@@ -129,6 +129,20 @@ Run the install command again with the newer tag. Data, sessions and your apps a
 when the API starts. Use `--http-port` and `--https-port` if ports 80 and 443 are taken. A newer version can update the stored data, so
 an older one may not read it back: copy the data volume first (below) if you might want to return.
 
+#### From the console
+
+**Settings → Updates** shows which release the server runs and the newest stable release the project has published. When a
+newer one exists, a notice appears above the console's pages, and **Update to …** there moves the console and the API to
+it. The page says what will happen first: the console is unavailable for about a minute, apps keep running, and Docker puts
+the old release back if the new one does not start. Updating only goes forward, only to a stable release, and only when you
+press the button; before 1.0 a minor release also asks you to copy the data volume first.
+
+To know about new releases, the server asks GitHub for the project's latest release at most every six hours (every half
+hour after a failure). GitHub sees the server's address and the name `provelox` with its release number, nothing else.
+Switch it off under **Settings → Updates**, or set `UPDATE_CHECK=false` in the API's environment, which also stops it being
+switched on from the console. Without the check, update as described above, with the install command. A server that runs
+the image under its old name (below) cannot update itself.
+
 #### If your server runs the old image name
 
 Before 0.5.0 the image was published as `ghcr.io/floms/provelox`. It is now `ghcr.io/provelox/provelox`, and it is public:

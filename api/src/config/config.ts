@@ -52,6 +52,19 @@ const schema = z.object({
   USAGE_RETENTION_HOURS: z.coerce.number().int().min(1).max(720).default(24),
   /** Traefik certificate resolver used for HTTPS hosts */
   CERT_RESOLVER: z.string().default('le'),
+  /**
+   * Now and then ask where the project publishes releases whether a newer one exists, and say so in the console. Off:
+   * this API never contacts that server (it can also be turned off under Settings, but never turned on here).
+   */
+  UPDATE_CHECK: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((v) => v === 'true'),
+  /** Where the newest release is read from: GitHub's answer for the project's latest (stable) release */
+  RELEASES_URL: z
+    .string()
+    .url()
+    .default('https://api.github.com/repos/provelox/provelox/releases/latest'),
   /** Run and manage the Traefik proxy service. Turn off to bring your own reverse proxy. */
   PROXY_ENABLED: z
     .enum(['true', 'false'])

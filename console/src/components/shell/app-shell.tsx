@@ -9,6 +9,8 @@ import { Logo } from '@/components/brand/logo';
 import { Button } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { UpdateNoticeBar } from '@/components/update-notice';
+import type { UpdateNotice } from '@/lib/updates';
 import { formatVersion } from '@/lib/version';
 import { NAV_GROUPS } from '@/lib/nav';
 import { cn } from '@/lib/utils';
@@ -20,12 +22,15 @@ export function AppShell({
   apps,
   groups,
   version,
+  update = null,
   children,
 }: {
   apps: ShellApp[];
   groups: { id: string; name: string }[];
   /** The release this instance runs, as the API reports it */
   version: string | null;
+  /** A newer release than the one running, to tell about above every page */
+  update?: UpdateNotice | null;
 
   children: ReactNode;
 }) {
@@ -179,7 +184,10 @@ export function AppShell({
       )}
 
       <div className="pt-14 lg:pl-60">
-        <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <main className="px-4 py-6 sm:px-6 lg:px-8">
+          {update && <UpdateNoticeBar notice={update} />}
+          {children}
+        </main>
       </div>
 
       <CommandPalette

@@ -14,6 +14,7 @@ test.describe('settings', () => {
       'Image registries',
       'Template registries',
       'Servers',
+      'Updates',
       'Platform services',
       'Storage & cleanup',
       'Connection',

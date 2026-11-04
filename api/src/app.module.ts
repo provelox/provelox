@@ -67,6 +67,11 @@ import { SecurityController } from './security/security.controller';
 import { SecurityService } from './security/security.service';
 import { PlatformUsageService } from './system/platform-usage.service';
 import { SettingsService } from './system/settings.service';
+import { ReleaseController } from './system/release.controller';
+import {
+  RELEASE_FETCH,
+  ReleaseCheckService,
+} from './system/release-check.service';
 import { HealthController, SystemController } from './system/system.controller';
 
 @Module({
@@ -76,6 +81,7 @@ import { HealthController, SystemController } from './system/system.controller';
     SsoController,
     SsoPublicController,
     ImageUpdatesController,
+    ReleaseController,
     HealthController,
     ClusterController,
     NotificationsController,
@@ -113,6 +119,11 @@ import { HealthController, SystemController } from './system/system.controller';
     PlaceholderService,
     PlatformHostsService,
     SelfUpdateService,
+    ReleaseCheckService,
+    {
+      provide: RELEASE_FETCH,
+      useValue: (url: string, init: RequestInit) => fetch(url, init),
+    },
     PlatformUsageService,
     HostProcessesService,
     SecurityService,

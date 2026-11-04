@@ -9,6 +9,7 @@ reviews of the whole platform (API, console, installer and pipeline); this page 
 | --- | --- |
 | Sign-in | Admin password (bcrypt). Wrong passwords are counted per visitor (from the proxy's `X-Forwarded-For`) with a looser overall cap. |
 | Access tokens | 256-bit secrets stored only as hashes, compared in constant time, at one of three levels: *read*, *operate*, *update*. A route with no level declared is closed to tokens. |
+| Update check | At most every six hours the API asks GitHub for the project's latest release; GitHub sees the server's address and the name `provelox` with its release number, nothing else. It only reports: an update starts only when an admin presses the button, goes forward only, and only after the registry has been asked whether the image can be pulled. Turn it off under Settings → Updates or with `UPDATE_CHECK=false`. |
 | Deploy keys | Per app. A key can roll its app to a new version of the image it runs; it cannot run a different image. |
 | Secrets | App secrets are Docker secrets: write-only, never returned. Saved registry passwords and webhook addresses are sealed (AES-GCM). |
 | Outgoing calls | Webhook and node addresses may not point at cloud-metadata or link-local addresses (checked on the name and on what it resolves to). A call that carries a token never follows a redirect. |

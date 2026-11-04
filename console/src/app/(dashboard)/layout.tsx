@@ -3,8 +3,9 @@ import { AppShell } from '@/components/shell/app-shell';
 import { WaitingScreen } from '@/components/waiting-screen';
 import { isApiDown } from '@/lib/availability';
 import { getApps } from '@/lib/app-data';
-import { loadGroups } from '@/lib/backend';
+import { loadGroups, loadRelease } from '@/lib/backend';
 import { statusOf } from '@/app/(dashboard)/apps/app-row';
+import { noticeOf } from '@/lib/updates';
 import { groupOfApp } from '@/lib/groups';
 import { getSession } from '@/lib/session';
 import { withSessionOr } from '@/lib/with-session';
@@ -30,6 +31,8 @@ export default async function DashboardLayout({
   const { appDefinitions, version } = loaded;
   // Collection names feed the command palette; without them it just lists apps
   const groups = await withSessionOr(loadGroups, { groups: [] });
+  // An optional extra, answered from the API's memory: a failure only means no notice
+  const update = noticeOf(await withSessionOr(loadRelease, null));
   const apps = appDefinitions
     .map((a) => ({
       name: a.appName,
@@ -49,6 +52,7 @@ export default async function DashboardLayout({
       apps={apps}
       groups={groups.groups.map(({ id, name }) => ({ id, name }))}
       version={version}
+      update={update}
     >
       {children}
     </AppShell>

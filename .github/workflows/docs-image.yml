@@ -3,7 +3,12 @@ name: Docs image
 # Builds the documentation site (docs/) into an image and publishes it as ghcr.io/provelox/docs for amd64 and arm64:
 # `latest` and `sha-<commit>` on every change to main. Pull requests that change the docs build the image and test it, and
 # publish nothing. It runs only in the public repository (docs/ is public; the private repository mirrors to it).
-# Deploying the image is separate: run it as an app (container port 80) behind the docs address.
+# The image runs as an app (container port 80) behind the docs address. On a push to main, once the image is published,
+# the `deploy` job rolls that app onto the new `sha-<commit>` image with the provelox/deploy action and waits for it to be
+# running. It runs only when the repository variable PROVELOX_SERVER_URL is set, and needs, in this repository's
+# Settings -> Secrets and variables -> Actions:
+#   secret   PROVELOX_DEPLOY_KEY    the deploy key of the docs app (made in its Deployments tab; shown once)
+#   variable PROVELOX_SERVER_URL    the Provelox API address, api.<root domain> by default (not the console's)
 on:
   push:
     branches: [main]
@@ -28,12 +33,18 @@ jobs:
     if: github.repository == 'provelox/provelox'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    outputs:
+      tag: ${{ steps.deploytag.outputs.value }}
     permissions:
       contents: read
       packages: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      # the tag the deploy job rolls onto: the same short commit tag the metadata step publishes
+      - name: Tag to deploy
+        id: deploytag
+        run: echo "value=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       # One platform, loaded into the local Docker so it can be run and asked for pages before anything is published
       - name: Build the image for the test
@@ -101,3 +112,23 @@ jobs:
             echo "Published: \`${{ steps.meta.outputs.tags }}\`" | tr '\n' ' '
             echo ""
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # A deploy key can only roll an app onto a new tag of the image it already runs, so this uses the commit tag, never
+  # `latest`. It runs after the build, the tests against the running container and the publish, so only a tested image is
+  # deployed. A pull request never deploys (it publishes nothing, and has no secrets when it comes from a fork).
+  deploy:
+    name: Deploy
+    needs: image
+    if: ${{ github.repository == 'provelox/provelox' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PROVELOX_SERVER_URL != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions: {}
+    concurrency:
+      group: docs-deploy
+      cancel-in-progress: false
+    steps:
+      - uses: provelox/deploy@465d2e3d029094a0212d8fa88954cdb6d672ea4b # v1.0.1
+        with:
+          server-url: ${{ vars.PROVELOX_SERVER_URL }}
+          deploy-key: ${{ secrets.PROVELOX_DEPLOY_KEY }}
+          image: ghcr.io/provelox/docs:${{ needs.image.outputs.tag }}

@@ -5,10 +5,13 @@ name: Docs image
 # publish nothing. It runs only in the public repository (docs/ is public; the private repository mirrors to it).
 # The image runs as an app (container port 80) behind the docs address. On a push to main, once the image is published,
 # the `deploy` job rolls that app onto the new `sha-<commit>` image with the provelox/deploy action and waits for it to be
-# running. It runs only when the repository variable PROVELOX_SERVER_URL is set, and needs, in this repository's
+# running. It runs only when the repository variable DEPLOY_DOCS is `true`, and needs, in this repository's
 # Settings -> Secrets and variables -> Actions:
 #   secret   PROVELOX_DEPLOY_KEY    the deploy key of the docs app (made in its Deployments tab; shown once)
-#   variable PROVELOX_SERVER_URL    the Provelox API address, api.<root domain> by default (not the console's)
+#   secret   PROVELOX_SERVER_URL    the Provelox API address, api.<root domain> by default (not the console's)
+#   variable DEPLOY_DOCS            `true` to switch the deploy on
+# This repository is public and so are its run logs: the address is a secret so that it is masked there. A variable would
+# be printed in plain text.
 on:
   push:
     branches: [main]
@@ -119,7 +122,7 @@ jobs:
   deploy:
     name: Deploy
     needs: image
-    if: ${{ github.repository == 'provelox/provelox' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PROVELOX_SERVER_URL != '' }}
+    if: ${{ github.repository == 'provelox/provelox' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.DEPLOY_DOCS == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions: {}
@@ -129,6 +132,6 @@ jobs:
     steps:
       - uses: provelox/deploy@465d2e3d029094a0212d8fa88954cdb6d672ea4b # v1.0.1
         with:
-          server-url: ${{ vars.PROVELOX_SERVER_URL }}
+          server-url: ${{ secrets.PROVELOX_SERVER_URL }}
           deploy-key: ${{ secrets.PROVELOX_DEPLOY_KEY }}
           image: ghcr.io/provelox/docs:${{ needs.image.outputs.tag }}

@@ -3,6 +3,7 @@ import { parseDocument } from 'yaml';
 import { appDefinition, type AppDefinition } from '../apps/app.model';
 import { explainName } from '../common/naming';
 import { interpolate } from './interpolate';
+import { expandCompactKeys } from './declaration';
 
 export interface PlanIssue {
   /** Compose service the issue is about, when there is one */
@@ -249,11 +250,12 @@ function readVariableDeclarations(
     c.error('"x-provelox.variables" must be a map of variable names.');
     return out;
   }
-  for (const [name, d] of Object.entries(raw.variables)) {
-    if (!isRecord(d)) {
+  for (const [name, written] of Object.entries(raw.variables)) {
+    if (!isRecord(written)) {
       c.error(`"x-provelox.variables.${name}" must be a map.`);
       continue;
     }
+    const d = expandCompactKeys(written);
     for (const key of Object.keys(d))
       if (!DECLARATION_KEYS.has(key))
         c.warn(`Unknown key "x-provelox.variables.${name}.${key}" is ignored.`);

@@ -73,6 +73,34 @@ export interface VariableDeclaration {
   minLength?: number;
 }
 
+/**
+ * YAML needs a space after the colon: `{secret:true}` is one key, named "secret:true", with nothing after it. People
+ * write it that way anyway, so a key that is really `name:value` is split back into what was meant. The API does the
+ * same (api/src/projects/declaration.ts), so the form and the deploy agree on what a file says.
+ */
+export function expandCompactKeys(
+  declaration: Record<string, unknown>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(declaration)) {
+    const m = value == null ? /^([A-Za-z_][\w-]*):(\S.*)$/.exec(key) : null;
+    if (!m) {
+      out[key] = value;
+      continue;
+    }
+    const raw = m[2].trim();
+    out[m[1]] =
+      raw === 'true'
+        ? true
+        : raw === 'false'
+          ? false
+          : /^-?\d+$/.test(raw)
+            ? Number(raw)
+            : raw.replace(/^(['"])(.*)\1$/, '$2');
+  }
+  return out;
+}
+
 /** The declarations of a compose file; none (never an error) when the file is not valid YAML yet, as while it is being typed. */
 export function declaredVariables(
   compose: string,
@@ -90,7 +118,7 @@ export function declaredVariables(
   const out: Record<string, VariableDeclaration> = {};
   for (const [key, d] of Object.entries(vars)) {
     if (!d || typeof d !== 'object') continue;
-    const r = d as Record<string, unknown>;
+    const r = expandCompactKeys(d as Record<string, unknown>);
     const text = (k: string) =>
       typeof r[k] === 'string' ? (r[k] as string) : undefined;
     out[key] = {

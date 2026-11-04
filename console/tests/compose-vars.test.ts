@@ -81,3 +81,42 @@ describe('declaredVariables', () => {
     expect(declaredVariables('')).toEqual({});
   });
 });
+
+describe('declaredVariables: a declaration written without a space after the colon', () => {
+  const file = (decl: string) =>
+    `x-provelox:\n  variables:\n    PW: ${decl}\nservices:\n  db:\n    image: mysql\n    environment:\n      P: \${PW}\n`;
+
+  it('is read as written: secret, label and length (the case YAML reads as one key named "secret:true")', () => {
+    expect(
+      declaredVariables(file("{secret:true,label: 'Database Root Password'}"))
+        .PW,
+    ).toMatchObject({ secret: true, label: 'Database Root Password' });
+    expect(
+      declaredVariables(file('{label: Root, secret:true}')).PW,
+    ).toMatchObject({
+      secret: true,
+      label: 'Root',
+    });
+    expect(
+      declaredVariables(file('{secret:true,minLength:16}')).PW,
+    ).toMatchObject({
+      secret: true,
+      minLength: 16,
+    });
+    expect(
+      declaredVariables(file("{secret:false,description:'shown'}")).PW,
+    ).toMatchObject({
+      secret: false,
+      description: 'shown',
+    });
+  });
+
+  it('reads the usual spelling the same way', () => {
+    expect(
+      declaredVariables(file('{ secret: true, minLength: 16 }')).PW,
+    ).toMatchObject({
+      secret: true,
+      minLength: 16,
+    });
+  });
+});

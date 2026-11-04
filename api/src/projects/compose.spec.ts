@@ -432,3 +432,30 @@ describe('planCompose: x-provelox.variables', () => {
     );
   });
 });
+
+describe('planCompose: variables declared without a space after the colon', () => {
+  const file = (decl: string) =>
+    `x-provelox:\n  variables:\n    PW: ${decl}\nservices:\n  db:\n    image: mysql:5.7\n    environment:\n      P: \${PW}\n`;
+
+  it('reads {secret:true,minLength:16} as written: no "unknown key" warning, and the length is enforced', () => {
+    const short = planCompose(
+      file('{secret:true,minLength:16,label: Root}'),
+      'p',
+      { PW: 'short' },
+    );
+    expect(short.warnings).toEqual([]);
+    expect(short.errors.map((e) => e.message)).toEqual([
+      'PW must be at least 16 characters (it is 5).',
+    ]);
+    const ok = planCompose(file('{secret:true,minLength:16}'), 'p', {
+      PW: 'x'.repeat(16),
+    });
+    expect(ok.errors).toEqual([]);
+    expect(ok.warnings).toEqual([]);
+  });
+
+  it('still warns about a key that really is unknown', () => {
+    const r = planCompose(file('{secret:true,colour:red}'), 'p', { PW: 'abc' });
+    expect(r.warnings.map((w) => w.message).join()).toContain('colour');
+  });
+});

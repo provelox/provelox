@@ -1,5 +1,6 @@
 import { parse } from 'yaml';
 import type { ResolvedVariable } from '../templates/connection';
+import { expandCompactKeys } from './declaration';
 
 const REF =
   /(?<!\$)\$(?:\{([A-Za-z_][A-Za-z0-9_]*)(?:(:?[-+?])([^}]*))?\}|([A-Za-z_][A-Za-z0-9_]*))/g;
@@ -25,7 +26,11 @@ export function composeVariables(
   const keys = new Set<string>();
   for (const m of compose.matchAll(REF)) keys.add((m[1] ?? m[4]) as string);
   return [...keys].map((key) => {
-    const d = declared[key] ?? {};
+    const raw = declared[key];
+    const d =
+      raw && typeof raw === 'object' && !Array.isArray(raw)
+        ? expandCompactKeys(raw)
+        : {};
     const secret = d.secret === true || d.kind === 'secret';
     const text = (k: string) =>
       typeof d[k] === 'string' ? (d[k] as string) : undefined;

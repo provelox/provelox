@@ -107,3 +107,18 @@
     @apply bg-background text-foreground antialiased;
   }
 }
+
+/*
+ * People who ask their system for less motion get none that moves things around: dialogs and menus appear and go at
+ * once, and hover fades are instant. Spinners and pulses stay, because they say "working", not "look here".
+ */
+@media (prefers-reduced-motion: reduce) {
+  *:not(.animate-spin):not(.animate-pulse),
+  *:not(.animate-spin):not(.animate-pulse)::before,
+  *:not(.animate-spin):not(.animate-pulse)::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

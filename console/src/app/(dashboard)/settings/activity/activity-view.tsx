@@ -235,7 +235,7 @@ function EventRow({ e }: { e: ActivityEvent }) {
         className={cn(
           'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full',
           failed
-            ? 'bg-destructive/15 text-destructive'
+            ? 'bg-destructive/15 text-red-700 dark:text-destructive'
             : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
         )}
         title={failed ? failureText(e.status) : 'Worked'}

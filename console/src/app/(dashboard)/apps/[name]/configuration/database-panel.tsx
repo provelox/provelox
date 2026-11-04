@@ -51,6 +51,7 @@ import { formatBytes } from '@/lib/format';
 import { uploadAdvice } from '@/lib/volume-import';
 import { RestoreDumpFromServer } from './restore-dump-from-server';
 import { SaveDump } from './save-dump';
+import { useHeld } from '@/lib/use-held';
 
 /**
  * Backs up and restores the database an app runs, with the database's own tools (run inside its container, where its
@@ -77,6 +78,9 @@ export function DatabasePanel({
   const abort = useRef<AbortController | null>(null);
   const busy = sent !== null;
   const advice = file ? uploadAdvice(file.size) : 'ok';
+  // the dialog keeps its text while it fades out
+  const shownFile = useHeld(file);
+  const shownAdvice = shownFile ? uploadAdvice(shownFile.size) : 'ok';
 
   if (!info.engine) return null;
   const engine = ENGINE_LABEL[info.engine];
@@ -226,17 +230,17 @@ export function DatabasePanel({
           <DialogHeader>
             <DialogTitle>Restore into {appName}</DialogTitle>
             <DialogDescription>
-              {file ? (
+              {shownFile ? (
                 <>
-                  <span className="font-mono">{file.name}</span> (
-                  {formatBytes(file.size)}) into the {engine} database of{' '}
+                  <span className="font-mono">{shownFile.name}</span> (
+                  {formatBytes(shownFile.size)}) into the {engine} database of{' '}
                   {appName}.
                 </>
               ) : null}
             </DialogDescription>
           </DialogHeader>
 
-          {advice !== 'ok' && file && (
+          {shownAdvice !== 'ok' && shownFile && (
             <div
               role="alert"
               className="flex flex-col gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs"
@@ -244,9 +248,9 @@ export function DatabasePanel({
               <p className="flex gap-2">
                 <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
-                  {advice === 'refuse'
-                    ? `This file is ${formatBytes(file.size)}, too large to upload through the browser.`
-                    : `This file is ${formatBytes(file.size)}. An upload through the browser has to arrive within about a minute, or the proxy cuts it, and a slow connection will not manage that.`}{' '}
+                  {shownAdvice === 'refuse'
+                    ? `This file is ${formatBytes(shownFile.size)}, too large to upload through the browser.`
+                    : `This file is ${formatBytes(shownFile.size)}. An upload through the browser has to arrive within about a minute, or the proxy cuts it, and a slow connection will not manage that.`}{' '}
                   Put it on the server with rsync or scp and restore from there:
                   that has no size limit and carries on if the connection drops.
                 </span>

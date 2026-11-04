@@ -114,7 +114,7 @@ export default async function SettingsOverview() {
                       <span
                         className={
                           st.warn
-                            ? 'mt-2 flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400'
+                            ? 'mt-2 flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400'
                             : 'mt-2 flex items-center gap-1.5 text-xs text-muted-foreground'
                         }
                       >

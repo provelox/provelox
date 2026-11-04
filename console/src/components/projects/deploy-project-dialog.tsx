@@ -49,6 +49,7 @@ import {
   VariablesForm,
   type VariableField,
 } from './variables-form';
+import { useHeld } from '@/lib/use-held';
 
 /** What a service keeps that the compose file cannot say: its addresses and the settings made in Networking. */
 function KeptList({ keeps }: { keeps: KeptSettings | undefined }) {
@@ -298,142 +299,147 @@ function Body({
     });
 
   return (
-    <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       {step === 'configure' && (
         <form
-          className="flex flex-col gap-4 lg:min-h-0 lg:flex-1"
+          className="animate-in fade-in-0 duration-200 flex min-h-0 flex-1 flex-col"
           onSubmit={(e) => {
             e.preventDefault();
             if (canReview) review();
           }}
         >
-          <div
-            className={
-              mode.kind === 'template'
-                ? 'flex flex-col gap-4'
-                : 'grid gap-6 lg:min-h-0 lg:flex-1 lg:grid-cols-2 lg:grid-rows-1'
-            }
-          >
-            <div className="flex min-w-0 flex-col gap-4 lg:min-h-0">
-              {mode.kind === 'template' && (
-                <p className="text-sm text-muted-foreground">
-                  {mode.template.description}
-                </p>
-              )}
-              {mode.kind !== 'template' && !!mode.notes?.length && (
-                <ul className="list-disc rounded-md border bg-secondary/30 py-2 pl-7 pr-3 text-xs text-muted-foreground">
-                  {mode.notes.map((n) => (
-                    <li key={n}>{n}</li>
-                  ))}
-                </ul>
-              )}
-              <div className="flex flex-col gap-1">
-                <label htmlFor="project-name" className="text-sm font-medium">
-                  Project name
-                </label>
-                <Input
-                  id="project-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value.trim().toLowerCase())}
-                  readOnly={update}
-                  placeholder="e.g. shop"
-                  className="max-w-sm font-mono"
-                  aria-invalid={!!name && !!nameProblem}
-                  autoFocus={mode.kind === 'custom' && !mode.compose}
-                />
-                {name && nameProblem ? (
-                  <p role="alert" className="text-xs text-destructive">
-                    {nameProblem}
-                  </p>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    Each service becomes an app named{' '}
-                    <code>{name || 'project'}-service</code>, grouped under this
-                    name.
+          {/* Everything but the footer scrolls in here when the window is too short for it; the footer never moves */}
+          <div className="-mx-6 min-h-0 flex-1 overflow-y-auto px-6 pb-4">
+            <div
+              className={
+                mode.kind === 'template'
+                  ? 'flex flex-col gap-4'
+                  : 'grid gap-6 lg:h-full lg:min-h-[30rem] lg:grid-cols-2 lg:grid-rows-[minmax(0,1fr)]'
+              }
+            >
+              <div className="flex min-w-0 flex-col gap-4 lg:min-h-0">
+                {mode.kind === 'template' && (
+                  <p className="text-sm text-muted-foreground">
+                    {mode.template.description}
                   </p>
                 )}
-              </div>
-
-              {mode.kind !== 'template' && (
-                <div className="flex flex-col gap-1 lg:min-h-0 lg:flex-1">
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="compose" className="text-sm font-medium">
-                      Compose file
-                    </label>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      title="Tidy the indentation and spacing. Not available while the YAML has errors."
-                      disabled={formatYaml(compose) === null}
-                      onClick={() => {
-                        const out = formatYaml(compose);
-                        if (out !== null) setCompose(out);
-                      }}
-                    >
-                      Format
-                    </Button>
-                  </div>
-                  <CodeEditor
-                    id="compose"
-                    value={compose}
-                    onChange={setCompose}
-                    fill
-                    placeholder={'services:\n  web:\n    image: nginx:alpine'}
+                {mode.kind !== 'template' && !!mode.notes?.length && (
+                  <ul className="list-disc rounded-md border bg-secondary/30 py-2 pl-7 pr-3 text-xs text-muted-foreground">
+                    {mode.notes.map((n) => (
+                      <li key={n}>{n}</li>
+                    ))}
+                  </ul>
+                )}
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="project-name" className="text-sm font-medium">
+                    Project name
+                  </label>
+                  <Input
+                    id="project-name"
+                    value={name}
+                    onChange={(e) =>
+                      setName(e.target.value.trim().toLowerCase())
+                    }
+                    readOnly={update}
+                    placeholder="e.g. shop"
+                    className="max-w-sm font-mono"
+                    aria-invalid={!!name && !!nameProblem}
+                    autoFocus={mode.kind === 'custom' && !mode.compose}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Uses <code>image:</code> (images are not built here). Add{' '}
-                    <code>x-provelox: {'{ expose: true, port: 80 }'}</code> to a
-                    service to make it reachable from the internet; otherwise
-                    services are only reachable by each other.
-                  </p>
+                  {name && nameProblem ? (
+                    <p role="alert" className="text-xs text-destructive">
+                      {nameProblem}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Each service becomes an app named{' '}
+                      <code>{name || 'project'}-service</code>, grouped under
+                      this name.
+                    </p>
+                  )}
                 </div>
-              )}
-            </div>
-            <div className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
-              <VariablesForm
-                fields={fields}
-                services={usedBy}
-                values={values}
-                onChange={(k, v) => setValues((cur) => ({ ...cur, [k]: v }))}
-              />
-              {update && fields.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {fields.some(
-                    (f) =>
-                      mode.kind === 'update' && f.key in (mode.values ?? {}),
-                  )
-                    ? 'Filled in from what the services are running now, so an update that changes nothing restarts nothing. A new variable is empty. Changing a value restarts the service that uses it: the next step lists exactly which.'
-                    : 'Values are never stored, so enter them again to update. Services whose settings do not change are not restarted.'}
-                </p>
-              )}
 
-              {mode.kind === 'template' && (
-                <details className="rounded-md border text-xs">
-                  <summary className="flex cursor-pointer items-center gap-1 px-3 py-2 text-muted-foreground">
-                    <ChevronDown className="h-3 w-3" /> See the compose file
-                    this deploys
-                  </summary>
-                  <pre className="max-h-60 overflow-auto border-t bg-muted p-3 font-mono">
-                    {mode.compose}
-                  </pre>
-                </details>
-              )}
+                {mode.kind !== 'template' && (
+                  <div className="flex flex-col gap-1 lg:min-h-0 lg:flex-1">
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="compose" className="text-sm font-medium">
+                        Compose file
+                      </label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        title="Tidy the indentation and spacing. Not available while the YAML has errors."
+                        disabled={formatYaml(compose) === null}
+                        onClick={() => {
+                          const out = formatYaml(compose);
+                          if (out !== null) setCompose(out);
+                        }}
+                      >
+                        Format
+                      </Button>
+                    </div>
+                    <CodeEditor
+                      id="compose"
+                      value={compose}
+                      onChange={setCompose}
+                      fill
+                      placeholder={'services:\n  web:\n    image: nginx:alpine'}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Uses <code>image:</code> (images are not built here). Add{' '}
+                      <code>x-provelox: {'{ expose: true, port: 80 }'}</code> to
+                      a service to make it reachable from the internet;
+                      otherwise services are only reachable by each other.
+                    </p>
+                  </div>
+                )}
+              </div>
+              <div className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+                <VariablesForm
+                  fields={fields}
+                  services={usedBy}
+                  values={values}
+                  onChange={(k, v) => setValues((cur) => ({ ...cur, [k]: v }))}
+                />
+                {update && fields.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {fields.some(
+                      (f) =>
+                        mode.kind === 'update' && f.key in (mode.values ?? {}),
+                    )
+                      ? 'Filled in from what the services are running now, so an update that changes nothing restarts nothing. A new variable is empty. Changing a value restarts the service that uses it: the next step lists exactly which.'
+                      : 'Values are never stored, so enter them again to update. Services whose settings do not change are not restarted.'}
+                  </p>
+                )}
+
+                {mode.kind === 'template' && (
+                  <details className="rounded-md border text-xs">
+                    <summary className="flex cursor-pointer items-center gap-1 px-3 py-2 text-muted-foreground">
+                      <ChevronDown className="h-3 w-3" /> See the compose file
+                      this deploys
+                    </summary>
+                    <pre className="max-h-60 overflow-auto border-t bg-muted p-3 font-mono">
+                      {mode.compose}
+                    </pre>
+                  </details>
+                )}
+              </div>
             </div>
+
+            {missing.length > 0 && (
+              <p className="mt-4 text-xs text-muted-foreground">
+                Fill in: {missing.map((m) => m.key).join(', ')}
+              </p>
+            )}
+            {error && (
+              <p role="alert" className="mt-4 text-sm text-destructive">
+                {error}
+              </p>
+            )}
           </div>
-
-          {missing.length > 0 && (
-            <p className="text-xs text-muted-foreground">
-              Fill in: {missing.map((m) => m.key).join(', ')}
-            </p>
-          )}
-          {error && (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          )}
-          {/* Stays in view while the form scrolls, so Review is never lost below a long list */}
-          <div className="sticky -bottom-6 -mx-6 -mb-6 flex shrink-0 justify-end gap-2 border-t bg-background px-6 py-4">
+          {/* The last item of the form, flush with the dialog's bottom edge: Review is never lost below a long list */}
+          <div className="-mx-6 -mb-6 flex shrink-0 justify-end gap-2 border-t bg-background px-6 py-4">
             <Button
               type="button"
               variant="ghost"
@@ -450,7 +456,7 @@ function Body({
       )}
 
       {step === 'review' && plan && (
-        <div className="flex flex-col gap-4">
+        <div className="animate-in fade-in-0 duration-200 flex flex-col gap-4">
           {plan.diff.length > 0 && (
             <p className="text-sm text-muted-foreground">
               {diffSummary(plan.diff)}
@@ -681,7 +687,7 @@ function Body({
       )}
 
       {step === 'deploying' && deployed && (
-        <div className="flex flex-col gap-4">
+        <div className="animate-in fade-in-0 duration-200 flex flex-col gap-4">
           <p className="flex items-center gap-2 text-sm font-medium">
             <CheckCircle2 className="h-5 w-5 text-emerald-500" /> {name}{' '}
             {update ? 'is updated' : 'is created'}
@@ -752,7 +758,7 @@ function diffSummary(diff: ServiceChange[]) {
 
 /** The one dialog for putting a compose project on the platform: from a template, a pasted file, or an update. */
 export function DeployProjectDialog({
-  mode,
+  mode: current,
   existingProjects,
   onClose,
 }: {
@@ -762,10 +768,12 @@ export function DeployProjectDialog({
 }) {
   const [busy, setBusy] = useState(false);
   const [configuring, setConfiguring] = useState(true);
+  // what the dialog shows stays put while it fades out, instead of emptying and resizing as `mode` clears
+  const mode = useHeld(current);
   return (
-    <Dialog open={!!mode} onOpenChange={(o) => !o && !busy && onClose()}>
+    <Dialog open={!!current} onOpenChange={(o) => !o && !busy && onClose()}>
       <DialogContent
-        className={`max-h-[92vh] overflow-y-auto ${mode?.kind === 'template' ? 'sm:max-w-2xl' : `sm:max-w-5xl ${configuring ? 'lg:flex lg:h-[92vh] lg:flex-col' : ''}`}`}
+        className={`max-h-[92vh] ${configuring ? 'flex flex-col overflow-hidden' : 'overflow-y-auto'} ${mode?.kind === 'template' ? 'sm:max-w-2xl' : `sm:max-w-5xl ${configuring ? 'lg:h-[92vh]' : ''}`}`}
         // a stray click outside must not throw away what has been typed
         onInteractOutside={(e) => e.preventDefault()}
       >

@@ -32,6 +32,7 @@ import { deployImageAction } from '@/actions/apps';
 import { apiGet } from '@/lib/client-api';
 import { timeAgo } from '@/lib/format';
 import type { AppDefinition, BuildStatus } from '@/lib/types';
+import { useHeld } from '@/lib/use-held';
 
 const IMAGE_RE = /^[a-zA-Z0-9][a-zA-Z0-9._\-/:@]{0,299}$/;
 
@@ -55,6 +56,7 @@ export function DeployPanel({
     version: number;
     image: string;
   } | null>(null);
+  const shownRollback = useHeld(rollback);
   const logRef = useRef<HTMLPreElement>(null);
 
   const status = useQuery({
@@ -226,12 +228,14 @@ export function DeployPanel({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Roll back to v{rollback?.version}?
+              Roll back to v{shownRollback?.version}?
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="flex flex-col gap-2">
                 <p>
-                  <span className="font-mono text-xs">{rollback?.image}</span>{' '}
+                  <span className="font-mono text-xs">
+                    {shownRollback?.image}
+                  </span>{' '}
                   is deployed again, as a new version. The versions after it
                   stay in the history.
                 </p>

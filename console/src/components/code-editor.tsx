@@ -34,30 +34,36 @@ import { useEffect, useRef } from 'react';
 const theme = EditorView.theme({
   '&': {
     fontSize: '12px',
-    backgroundColor: 'var(--background)',
-    color: 'var(--foreground)',
+    backgroundColor: 'var(--color-background)',
+    color: 'var(--color-foreground)',
     borderRadius: '6px',
-    border: '1px solid var(--input)',
+    border: '1px solid var(--color-input)',
   },
-  '&.cm-focused': { outline: '2px solid var(--ring)', outlineOffset: '1px' },
+  '&.cm-focused': {
+    outline: '2px solid var(--color-ring)',
+    outlineOffset: '1px',
+  },
   '.cm-scroller': {
     fontFamily: 'var(--font-mono, ui-monospace, monospace)',
     minHeight: '16rem',
     maxHeight: '24rem',
     overflow: 'auto',
   },
-  '.cm-content': { caretColor: 'var(--foreground)', padding: '8px 0' },
-  '&.cm-focused .cm-cursor': { borderLeftColor: 'var(--foreground)' },
+  '.cm-content': { caretColor: 'var(--color-foreground)', padding: '8px 0' },
+  '&.cm-focused .cm-cursor': { borderLeftColor: 'var(--color-foreground)' },
+  // The line numbers stay put while a long line scrolls sideways, and the text passes under them: so the column needs
+  // a solid background (the editor's own), or the text shows through the numbers.
   '.cm-gutters': {
-    backgroundColor: 'transparent',
-    color: 'var(--muted-foreground)',
+    backgroundColor: 'var(--color-background)',
+    color: 'var(--color-muted-foreground)',
     border: 'none',
+    borderRight: '1px solid var(--color-border)',
   },
   '.cm-activeLine, .cm-activeLineGutter': { backgroundColor: 'transparent' },
   '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': {
-    backgroundColor: 'color-mix(in srgb, var(--ring) 30%, transparent)',
+    backgroundColor: 'color-mix(in srgb, var(--color-ring) 30%, transparent)',
   },
-  '.cm-placeholder': { color: 'var(--muted-foreground)' },
+  '.cm-placeholder': { color: 'var(--color-muted-foreground)' },
 });
 
 // light-dark() follows the page's color-scheme, which the .dark class sets.
@@ -193,9 +199,11 @@ export function CodeEditor({
   return (
     <div
       ref={host}
+      // Filling is done with flex, not with percentages: a percentage height needs every parent to have a definite
+      // height, and when one does not the editor grows past its box and spills over what is below it.
       className={
         fill
-          ? 'overflow-hidden lg:min-h-64 lg:flex-1 lg:[&_.cm-editor]:h-full lg:[&_.cm-scroller]:!max-h-none'
+          ? 'flex min-h-64 flex-col overflow-hidden lg:flex-1 lg:[&_.cm-editor]:min-h-0 lg:[&_.cm-editor]:flex-1 lg:[&_.cm-scroller]:!h-auto lg:[&_.cm-scroller]:min-h-0 lg:[&_.cm-scroller]:flex-1 lg:[&_.cm-scroller]:!max-h-none'
           : undefined
       }
     />

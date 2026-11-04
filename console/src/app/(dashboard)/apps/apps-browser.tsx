@@ -116,6 +116,7 @@ const RemoveProjectDialog = dynamic(
   { ssr: false },
 );
 import { updateLabel } from '@/lib/image-updates';
+import { useHeld } from '@/lib/use-held';
 
 type Filter = 'all' | AppStatus;
 const FILTERS: Filter[] = [
@@ -218,6 +219,7 @@ export function AppsBrowser({
   const [collapsed, setCollapsed] = useState<string[]>([]);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [removingProject, setRemovingProject] = useState<string | null>(null);
+  const shownRemoving = useHeld(removingProject);
   // Apps being moved into a project
   const [grouping, setGrouping] = useState<string[] | null>(null);
   const [tidying, setTidying] = useState(false);
@@ -406,6 +408,9 @@ export function AppsBrowser({
   };
   const selectedRows = rows.filter((r) => selected.includes(r.name));
   const bulkPlan = bulk ? planBulk(bulk.action, selectedRows) : null;
+  // the confirm dialog keeps its text while it fades out (leaving selection mode empties both)
+  const shownBulk = useHeld(bulk);
+  const shownPlan = useHeld(bulkPlan);
 
   /** Runs the action on each app, a few at a time so Docker is not asked to do everything at once. */
   const runBulk = () => {
@@ -1071,29 +1076,30 @@ export function AppsBrowser({
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>
-                {bulk ? BULK_LABEL[bulk.action] : ''} {bulkPlan?.apply.length}{' '}
-                app{bulkPlan?.apply.length === 1 ? '' : 's'}?
+                {shownBulk ? BULK_LABEL[shownBulk.action] : ''}{' '}
+                {shownPlan?.apply.length} app
+                {shownPlan?.apply.length === 1 ? '' : 's'}?
               </AlertDialogTitle>
               <AlertDialogDescription asChild>
                 <div className="flex flex-col gap-2">
                   <p className="font-mono text-xs">
-                    {bulkPlan?.apply.map((r) => r.name).join(', ')}
+                    {shownPlan?.apply.map((r) => r.name).join(', ')}
                   </p>
-                  {bulk?.action === 'stop' && (
+                  {shownBulk?.action === 'stop' && (
                     <p>
                       They become unavailable until started again. Data is kept.
                     </p>
                   )}
-                  {bulk?.action === 'restart' && (
+                  {shownBulk?.action === 'restart' && (
                     <p>
                       Each is replaced with a fresh instance; images and
                       settings do not change.
                     </p>
                   )}
-                  {!!bulkPlan?.skip.length && (
+                  {!!shownPlan?.skip.length && (
                     <p className="text-muted-foreground">
                       Left out:{' '}
-                      {bulkPlan.skip
+                      {shownPlan.skip
                         .map(
                           (s) =>
                             `${s.name} (${s.reason.toLowerCase().replace(/\.$/, '')})`,
@@ -1114,16 +1120,16 @@ export function AppsBrowser({
                   runBulk();
                 }}
               >
-                {bulk ? BULK_LABEL[bulk.action] : ''}
+                {shownBulk ? BULK_LABEL[shownBulk.action] : ''}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
         {removeEver && (
           <RemoveProjectDialog
-            project={removingProject ?? ''}
+            project={shownRemoving ?? ''}
             services={rows
-              .filter((r) => r.project === removingProject)
+              .filter((r) => r.project === shownRemoving)
               .map((r) => r.name)}
             open={removingProject !== null}
             onOpenChange={(o) => !o && setRemovingProject(null)}

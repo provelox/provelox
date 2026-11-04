@@ -37,6 +37,7 @@ import {
 import { uploadAdvice } from '@/lib/volume-import';
 import { RestoreFromServer } from './restore-from-server';
 import { RestoreModeFields } from './restore-mode';
+import { useHeld } from '@/lib/use-held';
 
 /**
  * Puts a .tar.gz (one made by Download, say) into a volume, from a file on the server (the way for anything large) or
@@ -76,6 +77,9 @@ export function RestoreVolume({
   const busy = sent !== null;
   const done = busy && file !== null && sent >= file.size;
   const advice = file ? uploadAdvice(file.size) : 'ok';
+  // the dialog keeps its text while it fades out
+  const shownFile = useHeld(file);
+  const shownAdvice = shownFile ? uploadAdvice(shownFile.size) : 'ok';
 
   const close = () => {
     if (busy) return;
@@ -216,13 +220,13 @@ export function RestoreVolume({
           <DialogHeader>
             <DialogTitle>Restore into {volumeName}</DialogTitle>
             <DialogDescription>
-              <span className="font-mono">{file?.name}</span>
-              {file ? ` (${formatBytes(file.size)})` : ''} into{' '}
+              <span className="font-mono">{shownFile?.name}</span>
+              {shownFile ? ` (${formatBytes(shownFile.size)})` : ''} into{' '}
               <span className="font-mono">{containerPath}</span> of {appName}.
             </DialogDescription>
           </DialogHeader>
 
-          {advice !== 'ok' && file && (
+          {shownAdvice !== 'ok' && shownFile && (
             <div
               role="alert"
               className="flex flex-col gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs"
@@ -230,9 +234,9 @@ export function RestoreVolume({
               <p className="flex gap-2">
                 <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
-                  {advice === 'refuse'
-                    ? `This file is ${formatBytes(file.size)}, too large to upload through the browser.`
-                    : `This file is ${formatBytes(file.size)}. An upload through the browser has to arrive within about a minute, or the proxy cuts it, and a slow connection will not manage that.`}{' '}
+                  {shownAdvice === 'refuse'
+                    ? `This file is ${formatBytes(shownFile.size)}, too large to upload through the browser.`
+                    : `This file is ${formatBytes(shownFile.size)}. An upload through the browser has to arrive within about a minute, or the proxy cuts it, and a slow connection will not manage that.`}{' '}
                   Put it on the server with rsync or scp and restore from there:
                   that has no size limit and carries on if the connection drops.
                 </span>

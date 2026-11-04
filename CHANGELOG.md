@@ -2,6 +2,28 @@
 
 What changed in each release, newest first. Security fixes say what was wrong and who could have used it.
 
+## 0.5.2
+
+A much bigger template catalog, and a calmer console: updates are announced in the header, the release notes are readable without leaving it, and dialogs and menus move more smoothly. A fix release for data: nothing stored changes, so you can update from 0.5.1 with the button in Settings → Updates.
+
+### Templates
+- **70 ready-made apps, up from 8.** New: Ghost, Directus, Strapi, Drupal and Joomla (content management); n8n, NocoDB, Baserow and Appsmith (automation and internal tools); Nextcloud, Mattermost, Paperless-ngx, Wiki.js, Memos, Odoo, DocuSeal, Firefly III, FreshRSS, Miniflux, Linkwarden, Linkding, Listmonk, Excalidraw, draw.io, Homebox, PhotoPrism, Audiobookshelf, Actual Budget and Mealie (productivity); Vaultwarden and Keycloak (security); Matomo, Metabase, Grafana and Healthchecks (analytics and monitoring); GitLab, Gitea, Mailpit, pgAdmin and phpMyAdmin (development and admin); Open WebUI, Langflow, AnythingLLM, LiteLLM and Ollama (AI); Shlink, YOURLS, PrivateBin, Gotify, IT-Tools and Stirling PDF (tools); PrestaShop (commerce); and ClickHouse, Meilisearch, Qdrant, RabbitMQ, MariaDB, Valkey, TimescaleDB, InfluxDB, CouchDB and Neo4j (data services). Each is the project's own image with the settings it needs; passwords and keys are generated for you. Apps with a first-run page say so in their description, since whoever opens it first sets it up. Strapi uses a community-packaged image (an empty Strapi to start from), and says so.
+- **Real logos on every card**, and new categories (CMS, Automation, Productivity, Security, Analytics, Development, AI, Commerce). The logos belong to their projects; see `console/public/brands/README.md`.
+- **A grid view with larger logos**, next to the list. The Templates page remembers your choice, and keeps your search and filters in the address, so a reload brings them back and a link shares them.
+
+### Console
+- **Updates are announced in the header, not in a bar above every page.** A small arrow with a dot appears when a newer release exists; it opens a short explanation with **Update…** and **What changed**. The version in the sidebar gets a chip that opens the same thing. "Hide until the next release" hides the header dot for that release and the chip stays. The page no longer jumps down when the notice appears.
+- **Release notes inside the console.** Settings → Updates has a **What's new** card with the notes of every release between the one you run and the newest, newest first, so none is skipped unread. They are shown as text: no scripts, no images, and only https links.
+- **The compose editor's line numbers no longer let text show through them** when a long line is scrolled sideways, and the editor now has the border and focus ring it was meant to have.
+- **The deploy dialog's buttons stay at the bottom.** The dialog is laid out as a header, a scrolling middle and a footer, so Cancel and Review no longer drift up the dialog in some situations.
+- **Dialogs no longer jump while they close.** Deploying a template, rolling back, bulk actions, restores and removing a project all kept emptying their text and resizing during the fade-out.
+- **Smoother motion.** Dialogs open in 150 ms and close in 100 ms, popovers grow from the button that opened them, and the steps of the deploy dialog fade in. With "reduce motion" set in your system, nothing slides or zooms (spinners keep spinning).
+- **The New menu is grouped** into Create (App, From a template, Compose project) and Organize (Group running apps), with distinct icons, a line on each saying when to pick it, and the real keyboard shortcuts shown.
+
+### API
+- **`secret:true` without a space works.** YAML reads `{secret:true, label: …}` as a key named `secret:true`, so the variable was treated as plain text. A declaration under `x-provelox: variables:` written that way is now read as written, for `secret`, `label`, `description` and the other fields.
+- **`GET /v1/system/release` now returns `notes`**: the stable releases newer than the one running, up to the latest, newest first (`version`, `publishedAt`, `url`, `body` in Markdown; at most ten, each cut at 20,000 characters), empty when you are current. When an update exists the server makes one more request to GitHub, for that list; if it fails you still get the update and the latest notes.
+
 ## 0.5.1
 
 The first release that can tell you about the next one, and update itself from the console. A server that still runs 0.5.0 does not look for releases yet, so it will not tell you about this one: update it once with the install command (see Install, Upgrading), or from the hub. From here on, the console does it.

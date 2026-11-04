@@ -18,7 +18,20 @@ export interface Template {
   id: string;
   name: string;
   description: string;
-  category: 'Database' | 'Storage' | 'Web' | 'Monitoring' | 'Tools';
+  category:
+    | 'Database'
+    | 'Storage'
+    | 'Web'
+    | 'CMS'
+    | 'Automation'
+    | 'Productivity'
+    | 'Security'
+    | 'Analytics'
+    | 'Monitoring'
+    | 'Development'
+    | 'Commerce'
+    | 'AI'
+    | 'Tools';
   /** The service other things connect to, so the console can say how (host: <project>-<this service>) */
   mainService: string;
   /** Port of that service, for connection hints */
@@ -28,7 +41,10 @@ export interface Template {
    * that variable. Missing for templates that are a web page to open instead.
    */
   connect?: string;
-  /** A brand mark the console has (a Simple Icons name like "postgresql"); without one it shows the template's initials */
+  /**
+   * A logo the console has: a Simple Icons name bundled with it ("postgresql"), or a file in console/public/brands
+   * ("/brands/ghost.svg"). Without one the card shows the template's initials.
+   */
   icon?: string;
   /** True when the template makes a service reachable from the internet (a web page to open) */
   publicWeb: boolean;
@@ -46,6 +62,8 @@ const secret = (
   description,
   kind: 'secret',
 });
+
+import { APP_TEMPLATES } from './catalog-apps';
 
 export const TEMPLATES: Template[] = [
   {
@@ -319,6 +337,7 @@ volumes:
       port: 8080
 `,
   },
+  ...APP_TEMPLATES,
 ];
 
 export const templateById = (id: string) => TEMPLATES.find((t) => t.id === id);

@@ -47,13 +47,13 @@ export function BrandTile({
   name,
   className,
 }: {
-  /** A key of the bundled brand marks, or the https address of a public image */
+  /** A key of the bundled brand marks, a logo file shipped in public/brands, or the https address of a public image */
   slug?: string;
   /** What it is called: the label, and the initials when there is no mark */
   name: string;
   className?: string;
 }) {
-  const url = slug && /^https:\/\//.test(slug) ? slug : undefined;
+  const url = slug && /^(https:\/\/|\/brands\/)/.test(slug) ? slug : undefined;
   // a picture that does not load (moved, blocked) falls back to the initials rather than a broken icon
   const [broken, setBroken] = useState(false);
   const mark = !url && slug ? BRAND_MARKS[slug] : undefined;

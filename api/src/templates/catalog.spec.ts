@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { planCompose } from '../projects/compose';
 import { isValidName } from '../common/naming';
 import { summarize, TEMPLATES, templateById } from './catalog';
@@ -44,6 +46,24 @@ describe('template catalog', () => {
       expect(plan.apps.some((a) => a.exposed)).toBe(t.publicWeb);
     });
 
+    it('says the port it really exposes', () => {
+      const exposed = plan.apps.filter((a) => a.exposed);
+      if (t.publicWeb)
+        expect(exposed.map((a) => a.serviceAlias)).toEqual([t.mainService]);
+      // with a connection hint, `port` is the port other apps connect to (RustFS: the S3 API), not the web page's
+      if (t.publicWeb && !t.connect)
+        expect(exposed[0].containerPort).toBe(t.port);
+    });
+
+    it('describes how to connect using only variables it declares', () => {
+      const names = new Set(t.variables.map((v) => v.key));
+      const used = [
+        ...(t.connect ?? '').matchAll(/\{([A-Za-z_][A-Za-z0-9_]*)\}/g),
+      ].map((m) => m[1]);
+      const allowed = new Set(['host', 'port', ...names]);
+      expect(used.filter((n) => !allowed.has(n))).toEqual([]);
+    });
+
     it('keeps data on named volumes, never on the host', () => {
       expect(t.compose).not.toMatch(/- ?\/|- ?\.\//);
       for (const a of plan.apps)
@@ -65,5 +85,20 @@ describe('template catalog', () => {
     expect(templateById('postgres')?.name).toBe('PostgreSQL');
     expect(templateById('nope')).toBeUndefined();
     expect(JSON.stringify(TEMPLATES.map(summarize))).not.toContain('services:');
+  });
+
+  it('only names logos the console actually has', () => {
+    const consoleDir = join(__dirname, '../../../console');
+    const marks = readFileSync(
+      join(consoleDir, 'src/lib/brand-marks.ts'),
+      'utf8',
+    );
+    const missing = TEMPLATES.filter((t) => {
+      if (!t.icon) return false;
+      return t.icon.startsWith('/brands/')
+        ? !existsSync(join(consoleDir, 'public', t.icon))
+        : !marks.includes(`\n  ${t.icon}: {`);
+    }).map((t) => `${t.id} -> ${t.icon}`);
+    expect(missing).toEqual([]);
   });
 });

@@ -30,6 +30,8 @@ function setup(
   return {
     s,
     calls,
+    /** One per look: the requests for the newest release (a look may add one for the releases in between) */
+    looks: () => calls.filter((c) => c.url === s.cfg.RELEASES_URL),
     svc: make(),
     make,
     answer: (f: () => Promise<Response> | Response) => (answer = f),
@@ -132,7 +134,7 @@ describe('ReleaseCheckService', () => {
   it('asks the one configured address, saying who is asking and nothing else', async () => {
     const t = setup('0.5.0');
     await t.svc.report();
-    expect(t.calls).toHaveLength(1);
+    expect(t.looks()).toHaveLength(1);
     expect(t.calls[0].url).toBe(t.s.cfg.RELEASES_URL);
     expect(t.s.cfg.RELEASES_URL).toBe(
       'https://api.github.com/repos/provelox/provelox/releases/latest',
@@ -215,12 +217,12 @@ describe('ReleaseCheckService', () => {
     const t0 = 1_000_000;
     await t.svc.report(t0);
     await t.svc.report(t0 + FRESH_MS - 1);
-    expect(t.calls).toHaveLength(1);
+    expect(t.looks()).toHaveLength(1);
     t.answer(() => release('0.5.2'));
     // stale: this call still answers from memory, and a look runs behind it
     expect((await t.svc.report(t0 + FRESH_MS + 1)).latest).toBe('0.5.1');
     await new Promise((r) => setImmediate(r));
-    expect(t.calls).toHaveLength(2);
+    expect(t.looks()).toHaveLength(2);
     expect((await t.svc.report(t0 + FRESH_MS + 2)).latest).toBe('0.5.2');
   });
 
@@ -230,10 +232,10 @@ describe('ReleaseCheckService', () => {
     const t0 = 5_000_000;
     await t.svc.report(t0);
     await t.svc.report(t0 + RETRY_MS - 1);
-    expect(t.calls).toHaveLength(1);
+    expect(t.looks()).toHaveLength(1);
     await t.svc.report(t0 + RETRY_MS + 1);
     await new Promise((r) => setImmediate(r));
-    expect(t.calls).toHaveLength(2);
+    expect(t.looks()).toHaveLength(2);
   });
 
   it('does one look at a time', async () => {
@@ -248,7 +250,7 @@ describe('ReleaseCheckService', () => {
     const b = t.svc.report(11);
     release_();
     await Promise.all([a, b]);
-    expect(t.calls).toHaveLength(1);
+    expect(t.looks()).toHaveLength(1);
   });
 
   it('honours "check now" at most once a minute', async () => {
@@ -256,9 +258,9 @@ describe('ReleaseCheckService', () => {
     const t0 = 9_000_000;
     await t.svc.force(t0);
     await t.svc.force(t0 + FORCE_EVERY_MS - 1);
-    expect(t.calls).toHaveLength(1);
+    expect(t.looks()).toHaveLength(1);
     await t.svc.force(t0 + FORCE_EVERY_MS);
-    expect(t.calls).toHaveLength(2);
+    expect(t.looks()).toHaveLength(2);
   });
 
   describe('turning it off', () => {
@@ -267,7 +269,7 @@ describe('ReleaseCheckService', () => {
       expect(t.svc.setEnabled(false)).toEqual({ enabled: false });
       const r = await t.svc.report();
       const f = await t.svc.force();
-      expect(t.calls).toHaveLength(0);
+      expect(t.looks()).toHaveLength(0);
       expect(r).toMatchObject({
         enabled: false,
         lockedOff: false,
@@ -284,7 +286,7 @@ describe('ReleaseCheckService', () => {
       t.svc.setEnabled(false);
       t.svc.setEnabled(true);
       const r = await t.svc.report();
-      expect(t.calls).toHaveLength(2);
+      expect(t.looks()).toHaveLength(2);
       expect(r.updateAvailable).toBe(true);
     });
 
@@ -292,7 +294,7 @@ describe('ReleaseCheckService', () => {
       const t = setup('0.5.0', { UPDATE_CHECK: 'false' });
       expect(t.s.cfg.UPDATE_CHECK).toBe(false);
       const r = await t.svc.report();
-      expect(t.calls).toHaveLength(0);
+      expect(t.looks()).toHaveLength(0);
       expect(r).toMatchObject({ enabled: false, lockedOff: true });
       expect(() => t.svc.setEnabled(true)).toThrow(ValidationError);
       expect(() => t.svc.setEnabled(true)).toThrow(/UPDATE_CHECK=false/);
@@ -362,5 +364,134 @@ describe('ReleaseCheckService', () => {
       await t.svc.report();
       expect(asked).toBe(0);
     });
+  });
+});
+
+describe('ReleaseCheckService release notes', () => {
+  const note = (
+    v: string,
+    body: string,
+    extra: Record<string, unknown> = {},
+  ) => ({
+    tag_name: `v${v}`,
+    draft: false,
+    prerelease: false,
+    html_url: `https://github.com/provelox/provelox/releases/tag/v${v}`,
+    published_at: '2026-11-03T22:00:00Z',
+    body,
+    ...extra,
+  });
+  const json = (v: unknown) => new Response(JSON.stringify(v), { status: 200 });
+  /** A release server with a "latest" and a list, as GitHub has */
+  function serve(t: ReturnType<typeof setup>, latest: unknown, list: unknown) {
+    t.answer(() => json(latest));
+    const base = t.s.cfg.RELEASES_URL;
+    const inner: ReleaseFetch = async (url, init) => {
+      t.calls.push({ url, init });
+      return url === base ? json(latest) : json(list);
+    };
+    return new ReleaseCheckService(t.s.docker, t.s.cfg, t.s.settings, inner);
+  }
+
+  it('keeps the notes of every stable release between the running one and the latest, newest first', async () => {
+    const t = setup('0.5.0');
+    const svc = serve(t, note('0.5.3', '## 0.5.3 notes'), [
+      note('0.5.3', '## 0.5.3 notes'),
+      note('0.5.2', 'two'),
+      note('0.5.2-rc.1', 'a candidate', { prerelease: true }),
+      note('0.5.1', 'one'),
+      note('0.5.0', 'the running one'),
+      note('0.4.9', 'older'),
+      note('0.6.0', 'a draft', { draft: true }),
+      note('0.9.0', 'newer than latest, so not offered yet'),
+    ]);
+    const r = await svc.report();
+    expect(r.notes.map((n) => [n.version, n.body])).toEqual([
+      ['0.5.3', '## 0.5.3 notes'],
+      ['0.5.2', 'two'],
+      ['0.5.1', 'one'],
+    ]);
+    expect(r.notes[0].url).toBe(
+      'https://github.com/provelox/provelox/releases/tag/v0.5.3',
+    );
+  });
+
+  it('asks for the releases in between only when there is an update to read about', async () => {
+    const current = setup('0.5.1');
+    const a = serve(current, note('0.5.1', 'same'), []);
+    expect((await a.report()).notes).toEqual([]);
+    expect(current.calls.map((c) => c.url)).toEqual([
+      current.s.cfg.RELEASES_URL,
+    ]);
+
+    const behind = setup('0.5.0');
+    const b = serve(behind, note('0.5.1', 'one'), [note('0.5.1', 'one')]);
+    await b.report();
+    expect(behind.calls.map((c) => c.url)).toEqual([
+      behind.s.cfg.RELEASES_URL,
+      'https://api.github.com/repos/provelox/provelox/releases?per_page=20',
+    ]);
+  });
+
+  it('still tells an update exists, with the latest notes, when the list cannot be read', async () => {
+    const t = setup('0.5.0');
+    for (const list of [
+      new Response('nope', { status: 500 }),
+      new Response('not json', { status: 200 }),
+      json({ message: 'an object, not a list' }),
+    ]) {
+      const base = t.s.cfg.RELEASES_URL;
+      const svc = new ReleaseCheckService(
+        t.s.docker,
+        t.s.cfg,
+        t.s.settings,
+        async (url) =>
+          url === base ? json(note('0.5.1', 'latest text')) : list.clone(),
+      );
+      const r = await svc.report();
+      expect(r.updateAvailable).toBe(true);
+      expect(r.error).toBeNull();
+      expect(r.notes.map((n) => [n.version, n.body])).toEqual([
+        ['0.5.1', 'latest text'],
+      ]);
+    }
+  });
+
+  it('keeps notes as text, cut at a sensible length, and ignores anything that is not text', async () => {
+    const t = setup('0.5.0');
+    const svc = serve(t, note('0.5.2', 'x'.repeat(50_000)), [
+      note('0.5.2', 'x'.repeat(50_000)),
+      note('0.5.1', null as unknown as string),
+      note('0.5.1x', 'a tag that is not a release number'),
+    ]);
+    const r = await svc.report();
+    expect(r.notes[0].body.length).toBeLessThanOrEqual(20_001);
+    expect(r.notes[0].body.endsWith('…')).toBe(true);
+    expect(r.notes.find((n) => n.version === '0.5.1')?.body).toBe('');
+    expect(r.notes.map((n) => n.version)).toEqual(['0.5.2', '0.5.1']);
+  });
+
+  it('keeps at most ten releases, and links only to github.com', async () => {
+    const t = setup('0.1.0');
+    const many = Array.from({ length: 20 }, (_, i) =>
+      note(
+        `0.2.${i}`,
+        `n${i}`,
+        i === 19 ? { html_url: 'https://evil.example/x' } : {},
+      ),
+    );
+    const svc = serve(t, many[19], many);
+    const r = await svc.report();
+    expect(r.notes).toHaveLength(10);
+    expect(r.notes[0].version).toBe('0.2.19');
+    expect(r.notes[0].url).toBeNull();
+  });
+
+  it('shows no notes when checking is off or there is nothing newer', async () => {
+    const t = setup('0.5.0');
+    const svc = serve(t, note('0.5.1', 'one'), [note('0.5.1', 'one')]);
+    await svc.report();
+    svc.setEnabled(false);
+    expect((await svc.report()).notes).toEqual([]);
   });
 });

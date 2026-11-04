@@ -32,7 +32,9 @@ export default async function DashboardLayout({
   // Collection names feed the command palette; without them it just lists apps
   const groups = await withSessionOr(loadGroups, { groups: [] });
   // An optional extra, answered from the API's memory: a failure only means no notice
-  const update = noticeOf(await withSessionOr(loadRelease, null));
+  const update = noticeOf(
+    await withSessionOr((token) => loadRelease(token, false), null),
+  );
   const apps = appDefinitions
     .map((a) => ({
       name: a.appName,

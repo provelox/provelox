@@ -271,6 +271,14 @@ export async function loadImageUpdates(
 
 /** What every running app uses right now, by app name. Stopped apps are not in it. */
 /** Whether the project has published a release newer than the one this server runs (`GET /v1/system/release`). */
+/** What one release says about itself, in Markdown as its authors wrote it */
+export interface ReleaseNote {
+  version: string;
+  publishedAt: string | null;
+  url: string | null;
+  body: string;
+}
+
 export interface ReleaseStatus {
   /** Checking is on: the environment allows it and an admin has not turned it off */
   enabled: boolean;
@@ -284,6 +292,10 @@ export interface ReleaseStatus {
   /** Before 1.0, a minor step can change the stored data: copy it first */
   careful: boolean;
   notesUrl: string | null;
+  /** The notes of each stable release newer than the one running, up to the latest, newest first */
+  notes: ReleaseNote[];
+  /** How many notes there are, also when they were left out (`?notes=0`) */
+  noteCount?: number;
   publishedAt: string | null;
   checkedAt: string | null;
   checking: boolean;
@@ -294,8 +306,11 @@ export interface ReleaseStatus {
   canUpdate: boolean;
 }
 
-export async function loadRelease(token: string) {
-  return api<ReleaseStatus>('system/release', { token });
+/** `withNotes: false` leaves the (large) release notes out: the layout asks on every page and only needs to know there is an update */
+export async function loadRelease(token: string, withNotes = true) {
+  return api<ReleaseStatus>(`system/release${withNotes ? '' : '?notes=0'}`, {
+    token,
+  });
 }
 
 export type UsageByApp = Record<

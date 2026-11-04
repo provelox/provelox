@@ -16,6 +16,8 @@ export interface UpdateNotice {
   notesUrl: string | null;
   imageMoved: boolean;
   canUpdate: boolean;
+  /** The Updates page has this release's notes, so "What changed" can go there instead of to GitHub */
+  hasNotes: boolean;
 }
 
 /** The notice for a status, or null when there is nothing to tell (or checking is off) */
@@ -30,6 +32,7 @@ export function noticeOf(s: ReleaseStatus | null): UpdateNotice | null {
     notesUrl: s.notesUrl,
     imageMoved: s.imageMoved,
     canUpdate: s.canUpdate,
+    hasNotes: (s.noteCount ?? s.notes?.length ?? 0) > 0,
   };
 }
 

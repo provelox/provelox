@@ -1,4 +1,12 @@
-import { Body, Controller, Get, HttpCode, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
 import { z } from 'zod';
 import { ValidationError } from '../common/errors';
 import { Scope } from '../auth/scope.decorator';
@@ -12,11 +20,13 @@ import { ReleaseCheckService } from './release-check.service';
 export class ReleaseController {
   constructor(private readonly releases: ReleaseCheckService) {}
 
-  /** From memory, at once (a few hours old at most); `checking` says a look is under way and `error` why the last one failed */
+  /** From memory, at once (a few hours old at most); `checking` says a look is under way and `error` why the last one failed. `?notes=0` leaves out the notes; `noteCount` says how many there are. */
   @Scope('read')
   @Get()
-  report() {
-    return this.releases.report();
+  async report(@Query('notes') notes?: string) {
+    const status = await this.releases.report();
+    // `?notes=0` leaves the release notes out (they can be large), for a caller that only needs to know there is an update
+    return notes === '0' ? { ...status, notes: [] } : status;
   }
 
   /** Looks again now. Ignored if it was done in the last minute. */

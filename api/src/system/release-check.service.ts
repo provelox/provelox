@@ -14,6 +14,9 @@ export const FORCE_EVERY_MS = 60_000;
 const FIRST_LOOK_MS = 1500;
 const TIMEOUT_MS = 5000;
 const MAX_BYTES = 1_000_000;
+/** How many releases' notes are kept, and how much of each: the notes are shown in the console, not stored for ever */
+const MAX_NOTES = 10;
+const NOTE_MAX_CHARS = 20_000;
 
 /** The image's old name, before the project moved to its own organization: it is no longer published */
 const OLD_IMAGE_REPO = 'ghcr.io/floms/provelox';
@@ -26,6 +29,14 @@ export type ReleaseFetch = (
 ) => Promise<Response>;
 
 export type Step = 'major' | 'minor' | 'patch';
+
+/** What one release says about itself (its notes, as the project wrote them in Markdown) */
+export interface ReleaseNote {
+  version: string;
+  publishedAt: string | null;
+  url: string | null;
+  body: string;
+}
 
 export interface ReleaseStatus {
   /** Checking is on: the environment allows it and the admin has not turned it off */
@@ -42,6 +53,10 @@ export interface ReleaseStatus {
   /** Before 1.0 a minor step can change the stored data, and a major step may: copy the data volume first */
   careful: boolean;
   notesUrl: string | null;
+  /** The notes of every stable release newer than the one running, up to the latest, newest first (empty when current) */
+  notes: ReleaseNote[];
+  /** How many notes there are, also when `notes` was left out of the answer (`?notes=0`) */
+  noteCount: number;
   publishedAt: string | null;
   checkedAt: string | null;
   checking: boolean;
@@ -57,6 +72,7 @@ interface Known {
   latest: string;
   notesUrl: string | null;
   publishedAt: string | null;
+  notes: ReleaseNote[];
 }
 interface Attempt {
   at: number;
@@ -175,12 +191,11 @@ export class ReleaseCheckService {
     return this.running;
   }
 
-  /** One request to the one address; everything in the answer is checked before it is believed */
-  private async look(): Promise<Known> {
-    const current = runningRelease();
+  /** One request; the answer is read with a size limit and must be JSON, or this says why in plain words */
+  private async get(url: string, current: string | null): Promise<unknown> {
     let res: Response;
     try {
-      res = await this.http(this.cfg.RELEASES_URL, {
+      res = await this.http(url, {
         headers: {
           accept: 'application/vnd.github+json',
           'user-agent': `provelox/${current ?? 'dev'}`,
@@ -194,37 +209,63 @@ export class ReleaseCheckService {
     }
     if (!res.ok)
       throw new Error(
-        `The server that publishes releases answered ${res.status}${res.status === 403 || res.status === 429 ? ' (too many requests from this address; it will try again later)' : ''}.`,
+        `The server that publishes releases answered ${res.status}${res.status === 403 || res.status === 429 ? ' (too many requests from this address; try again later)' : ''}.`,
       );
     const text = await res.text();
     if (text.length > MAX_BYTES)
       throw new Error('The answer about releases was far too large.');
-    let body: unknown;
     try {
-      body = JSON.parse(text);
+      return JSON.parse(text);
     } catch {
       throw new Error('The answer about releases was not understood.');
     }
-    const r = body as {
-      tag_name?: unknown;
-      draft?: unknown;
-      prerelease?: unknown;
-      html_url?: unknown;
-      published_at?: unknown;
+  }
+
+  /** The newest stable release; everything in the answer is checked before it is believed */
+  private async look(): Promise<Known> {
+    const current = runningRelease();
+    const note = readNote(await this.get(this.cfg.RELEASES_URL, current));
+    if (!note) throw new Error('The answer about releases was not understood.');
+    const known: Known = {
+      latest: note.version,
+      notesUrl: note.url,
+      publishedAt: note.publishedAt,
+      notes: [note],
     };
-    const tag =
-      typeof r.tag_name === 'string' ? r.tag_name.replace(/^v/, '') : '';
-    if (!VERSION.test(tag) || r.draft === true || r.prerelease === true)
-      throw new Error('The answer about releases was not understood.');
-    return {
-      latest: tag,
-      notesUrl: githubUrl(r.html_url),
-      publishedAt:
-        typeof r.published_at === 'string' &&
-        !Number.isNaN(Date.parse(r.published_at))
-          ? new Date(r.published_at).toISOString()
-          : null,
-    };
+    // Only when there is something to update to: what the releases in between say, so none is skipped unread. A
+    // failure here costs the extra notes, never the answer that an update exists.
+    if (current && compareVersions(note.version, current) > 0)
+      known.notes = await this.notesBetween(current, note).catch(() => [note]);
+    return known;
+  }
+
+  /** The stable releases after `current` up to `latest`, newest first; the latest's own notes if the list is no help */
+  private async notesBetween(
+    current: string,
+    latest: ReleaseNote,
+  ): Promise<ReleaseNote[]> {
+    // GitHub's list lives next to its "latest": .../releases/latest -> .../releases?per_page=20
+    const url = this.cfg.RELEASES_URL.replace(
+      /\/latest\/?$/,
+      `?per_page=${MAX_NOTES * 2}`,
+    );
+    if (url === this.cfg.RELEASES_URL) return [latest];
+    const list = await this.get(url, current);
+    if (!Array.isArray(list)) return [latest];
+    const found = list
+      .map(readNote)
+      .filter(
+        (n): n is ReleaseNote =>
+          !!n &&
+          compareVersions(n.version, current) > 0 &&
+          compareVersions(n.version, latest.version) <= 0,
+      )
+      .sort((a, b) => compareVersions(b.version, a.version))
+      .slice(0, MAX_NOTES);
+    // the latest is always there, with the text it had when it was found, even if the list was cut short
+    return found.some((n) => n.version === latest.version)
+      ? found
+      : [latest, ...found].slice(0, MAX_NOTES);
   }
 
   private async status(): Promise<ReleaseStatus> {
@@ -252,6 +293,9 @@ export class ReleaseCheckService {
       step: updateAvailable ? stepOf(current!, latest!) : null,
       careful: updateAvailable ? isCareful(current!, latest!) : false,
       notesUrl: updateAvailable ? (this.known?.notesUrl ?? null) : null,
+      notes: updateAvailable && enabled ? (this.known?.notes ?? []) : [],
+      noteCount:
+        updateAvailable && enabled ? (this.known?.notes.length ?? 0) : 0,
       publishedAt: enabled ? (this.known?.publishedAt ?? null) : null,
       checkedAt:
         enabled && this.attempt && !this.attempt.error
@@ -285,4 +329,31 @@ function githubUrl(v: unknown): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * One release from GitHub's JSON, or null when it is not a stable, published release with a version we understand.
+ * The text is kept as written (Markdown) but cut at a sensible length; the console renders it without raw HTML.
+ */
+function readNote(v: unknown): ReleaseNote | null {
+  if (!v || typeof v !== 'object') return null;
+  const r = v as Record<string, unknown>;
+  const version =
+    typeof r.tag_name === 'string' ? r.tag_name.replace(/^v/, '') : '';
+  if (!VERSION.test(version) || r.draft === true || r.prerelease === true)
+    return null;
+  const body = typeof r.body === 'string' ? r.body.trim() : '';
+  return {
+    version,
+    publishedAt:
+      typeof r.published_at === 'string' &&
+      !Number.isNaN(Date.parse(r.published_at))
+        ? new Date(r.published_at).toISOString()
+        : null,
+    url: githubUrl(r.html_url),
+    body:
+      body.length > NOTE_MAX_CHARS
+        ? `${body.slice(0, NOTE_MAX_CHARS).trimEnd()}…`
+        : body,
+  };
 }

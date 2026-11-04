@@ -86,9 +86,27 @@ describe('Release check (HTTP)', () => {
       notesUrl: 'https://github.com/provelox/provelox/releases/tag/v0.5.1',
       error: null,
     });
+    // the newest release, then (because it is newer than the one running) the list that holds the notes in between
     expect(asked).toEqual([
       'https://api.github.com/repos/provelox/provelox/releases/latest',
+      'https://api.github.com/repos/provelox/provelox/releases?per_page=20',
     ]);
+    expect(r.body.notes.map((n: { version: string }) => n.version)).toEqual([
+      '0.5.1',
+    ]);
+  });
+
+  it('leaves the notes out when asked (?notes=0), and still says how many there are', async () => {
+    const full = await http.get('/v1/system/release').set(auth()).expect(200);
+    expect(full.body.notes).toHaveLength(1);
+    expect(full.body.noteCount).toBe(1);
+    const lean = await http
+      .get('/v1/system/release?notes=0')
+      .set(auth())
+      .expect(200);
+    expect(lean.body.notes).toEqual([]);
+    expect(lean.body.noteCount).toBe(1);
+    expect(lean.body.latest).toBe('0.5.1');
   });
 
   it('lets a read token see it, and an operate token ask again, but neither change the setting', async () => {

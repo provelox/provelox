@@ -46,6 +46,7 @@ import {
   type Progress,
 } from '@/lib/updates';
 import { formatVersion } from '@/lib/version';
+import { ReleaseNotes } from './release-notes';
 
 const link = 'font-medium underline underline-offset-4 hover:no-underline';
 
@@ -225,17 +226,25 @@ export function UpdatesView({ initial }: { initial: ReleaseStatus }) {
                   )}
                 </div>
               )}
-              {notice.notesUrl && (
+              {notice.hasNotes ? (
                 <p>
-                  <a
-                    href={notice.notesUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={link}
-                  >
+                  <a href="#whats-new" className={link}>
                     What changed in {notice.latest}
                   </a>
                 </p>
+              ) : (
+                notice.notesUrl && (
+                  <p>
+                    <a
+                      href={notice.notesUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={link}
+                    >
+                      What changed in {notice.latest}
+                    </a>
+                  </p>
+                )
               )}
             </div>
           ) : (
@@ -283,14 +292,19 @@ export function UpdatesView({ initial }: { initial: ReleaseStatus }) {
         </CardContent>
       </Card>
 
+      {notice && (
+        <ReleaseNotes notes={status.notes ?? []} current={status.current} />
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Looking for new releases</CardTitle>
           <CardDescription>
             At most every few hours this server asks GitHub for the project’s
-            newest stable release. GitHub sees this server’s address and the
-            name “provelox” with its release number, nothing else. Nothing is
-            installed without you.
+            newest stable release, and, when it is newer than yours, once more
+            for what the releases in between say. GitHub sees this server’s
+            address and the name “provelox” with its release number, nothing
+            else. Nothing is installed without you.
           </CardDescription>
         </CardHeader>
         <CardContent>

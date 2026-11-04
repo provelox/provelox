@@ -21,6 +21,7 @@ const status = (over: Partial<ReleaseStatus> = {}): ReleaseStatus => ({
   step: 'patch',
   careful: false,
   notesUrl: 'https://github.com/provelox/provelox/releases/tag/v0.5.1',
+  notes: [],
   publishedAt: null,
   checkedAt: null,
   checking: false,
@@ -31,6 +32,15 @@ const status = (over: Partial<ReleaseStatus> = {}): ReleaseStatus => ({
 });
 
 describe('noticeOf', () => {
+  it('says whether the console has the notes to show, so "What changed" can stay in the console', () => {
+    expect(noticeOf(status())?.hasNotes).toBe(false);
+    const note = { version: '0.5.1', publishedAt: null, url: null, body: 'x' };
+    expect(noticeOf(status({ notes: [note] }))?.hasNotes).toBe(true);
+    // the layout asks without the notes (they are large) and still has to know there are some
+    expect(noticeOf(status({ notes: [], noteCount: 2 }))?.hasNotes).toBe(true);
+    expect(noticeOf(status({ notes: [], noteCount: 0 }))?.hasNotes).toBe(false);
+  });
+
   it('tells about a newer release', () => {
     expect(noticeOf(status())).toMatchObject({
       current: '0.5.0',

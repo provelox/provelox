@@ -9,7 +9,11 @@ import { Logo } from '@/components/brand/logo';
 import { Button } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { UpdateNoticeBar } from '@/components/update-notice';
+import {
+  UpdateBell,
+  UpdateChip,
+  useUpdateIndicator,
+} from '@/components/update-notice';
 import type { UpdateNotice } from '@/lib/updates';
 import { formatVersion } from '@/lib/version';
 import { NAV_GROUPS } from '@/lib/nav';
@@ -29,7 +33,7 @@ export function AppShell({
   groups: { id: string; name: string }[];
   /** The release this instance runs, as the API reports it */
   version: string | null;
-  /** A newer release than the one running, to tell about above every page */
+  /** A newer release than the one running: told in the header and beside the version */
   update?: UpdateNotice | null;
 
   children: ReactNode;
@@ -48,6 +52,7 @@ export function AppShell({
   useEffect(() => setIsMac(/Mac|iPhone|iPad/.test(navigator.platform)), []);
   useEffect(() => setNavOpen(false), [pathname]);
   const onSettings = pathname.startsWith('/settings');
+  const indicator = useUpdateIndicator(update);
 
   return (
     <div className="min-h-screen">
@@ -84,6 +89,12 @@ export function AppShell({
               {isMac ? '⌘' : 'Ctrl'} K
             </kbd>
           </button>
+          {update && indicator.bell && (
+            <UpdateBell
+              notice={update}
+              onHide={() => indicator.dismiss(update.latest)}
+            />
+          )}
           <ThemeToggle />
           <form action={logoutAction}>
             <SubmitButton variant="ghost" size="sm" aria-label="Sign out">
@@ -167,12 +178,10 @@ export function AppShell({
             </Link>
           </div>
         </nav>
-        <p
-          className="mt-6 px-5 text-xs text-muted-foreground"
-          data-testid="version"
-        >
-          Provelox {formatVersion(version)}
-        </p>
+        <div className="mt-6 flex items-center gap-2 px-5 text-xs text-muted-foreground">
+          <p data-testid="version">Provelox {formatVersion(version)}</p>
+          {update && indicator.chip && <UpdateChip notice={update} />}
+        </div>
       </aside>
       {navOpen && (
         <button
@@ -184,10 +193,7 @@ export function AppShell({
       )}
 
       <div className="pt-14 lg:pl-60">
-        <main className="px-4 py-6 sm:px-6 lg:px-8">
-          {update && <UpdateNoticeBar notice={update} />}
-          {children}
-        </main>
+        <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>
 
       <CommandPalette

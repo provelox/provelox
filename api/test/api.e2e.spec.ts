@@ -777,7 +777,11 @@ describe('Provelox API (HTTP)', () => {
         .set(auth())
         .expect(200);
       expect(list.body[0]).toMatchObject({ lastUsedImage: 'acme/ci:7' });
-      expect(JSON.stringify(list.body)).not.toContain(key.split('_')[2]);
+      // the whole secret (pvxk_<id>_<secret>), not one piece of it: the secret can contain "_", and a piece can then be
+      // empty, which no text can avoid containing
+      const secret = key.split('_').slice(2).join('_');
+      expect(secret.length).toBeGreaterThan(30);
+      expect(JSON.stringify(list.body)).not.toContain(secret);
 
       await http
         .post('/v1/ci/deploy')

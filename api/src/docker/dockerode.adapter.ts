@@ -773,12 +773,32 @@ export class DockerodeAdapter implements DockerPort {
     for (const c of stale)
       await this.docker
         .getContainer(c.Id)
-        .remove({ force: true })
+        .remove({ force: true, v: true })
         .catch(() => undefined);
+  }
+
+  /**
+   * A tmpfs for each path the image declares as VOLUME, except the ones the container mounts on purpose. Docker makes an
+   * anonymous volume for every such path when a container starts, and keeps it after the container is removed. The
+   * Provelox image declares /data, so each host scan left one behind. A tmpfs there creates nothing and keeps nothing.
+   */
+  private async shadowDeclaredVolumes(
+    image: string,
+    mountTargets: string[],
+  ): Promise<Record<string, string>> {
+    const info = await this.docker.getImage(image).inspect();
+    const declared = Object.keys(
+      (info.Config as { Volumes?: Record<string, unknown> } | undefined)
+        ?.Volumes ?? {},
+    );
+    return Object.fromEntries(
+      declared.filter((p) => !mountTargets.includes(p)).map((p) => [p, '']),
+    );
   }
 
   async pinVolume(volume: string, image: string, app: string) {
     await this.ensureImage(image);
+    const tmpfs = await this.shadowDeclaredVolumes(image, ['/pinned']);
     const c = await this.docker.createContainer({
       Image: image,
       Cmd: ['sleep', '31536000'],
@@ -789,6 +809,7 @@ export class DockerodeAdapter implements DockerPort {
       },
       HostConfig: {
         Binds: [`${volume}:/pinned:ro`],
+        Tmpfs: tmpfs,
         NetworkMode: 'none',
         // survives a Docker restart, so a held volume stays held
         RestartPolicy: { Name: 'unless-stopped' },
@@ -799,7 +820,7 @@ export class DockerodeAdapter implements DockerPort {
   }
 
   async releasePin(id: string) {
-    await this.docker.getContainer(id).remove({ force: true });
+    await this.docker.getContainer(id).remove({ force: true, v: true });
   }
 
   async releasePins(app: string) {
@@ -814,13 +835,17 @@ export class DockerodeAdapter implements DockerPort {
       },
     });
     for (const p of pins)
-      await this.docker.getContainer(p.Id).remove({ force: true });
+      await this.docker.getContainer(p.Id).remove({ force: true, v: true });
     return pins.length;
   }
 
   async runHelper(spec: HelperSpec) {
     await this.ensureImage(spec.image);
     await this.removeStaleHelpers();
+    const tmpfs = await this.shadowDeclaredVolumes(
+      spec.image,
+      spec.mounts.map((m) => m.target),
+    );
     const container = await this.docker.createContainer({
       Image: spec.image,
       Cmd: spec.command,
@@ -828,6 +853,7 @@ export class DockerodeAdapter implements DockerPort {
       Labels: { [LABEL_MANAGED]: 'true', 'io.provelox.helper': 'true' },
       HostConfig: {
         // by name, so Docker binds the exact volume and nothing is created implicitly
+        Tmpfs: tmpfs,
         Binds: [
           ...spec.mounts.map(
             (m) => `${m.volume}:${m.target}${m.readOnly ? ':ro' : ''}`,
@@ -868,7 +894,7 @@ export class DockerodeAdapter implements DockerPort {
         output: output.slice(-(spec.maxOutput ?? 4000)),
       };
     } finally {
-      await container.remove({ force: true }).catch(() => undefined);
+      await container.remove({ force: true, v: true }).catch(() => undefined);
     }
   }
 
@@ -1130,7 +1156,7 @@ export class DockerodeAdapter implements DockerPort {
       if (c.State !== 'running')
         await this.docker
           .getContainer(c.Id)
-          .remove({ force: true })
+          .remove({ force: true, v: true })
           .catch(() => undefined);
   }
 
@@ -1139,6 +1165,10 @@ export class DockerodeAdapter implements DockerPort {
     const kind = spec.kind ?? 'download';
     await this.removeFinishedDownloads(kind);
     const input = spec.input;
+    const tmpfs = await this.shadowDeclaredVolumes(
+      spec.image,
+      spec.mounts.map((m) => m.target),
+    );
     const container = await this.docker.createContainer({
       Image: spec.image,
       Entrypoint: spec.entrypoint,
@@ -1153,6 +1183,7 @@ export class DockerodeAdapter implements DockerPort {
       // Not 'true': the other helpers remove every container with that label before they run, which would kill a copy
       Labels: { [LABEL_MANAGED]: 'true', 'io.provelox.helper': kind },
       HostConfig: {
+        Tmpfs: tmpfs,
         Binds: spec.mounts.map(
           (m) => `${m.volume}:${m.target}${m.readOnly ? ':ro' : ''}`,
         ),
@@ -1167,7 +1198,7 @@ export class DockerodeAdapter implements DockerPort {
       },
     });
     const remove = () =>
-      container.remove({ force: true }).catch(() => undefined);
+      container.remove({ force: true, v: true }).catch(() => undefined);
     try {
       const raw = (await container.attach({
         stream: true,

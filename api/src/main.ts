@@ -13,6 +13,8 @@ export function configure(app: import('@nestjs/common').INestApplication) {
       set(k: string, v: unknown): void;
     }
   ).set('trust proxy', 'loopback, linklocal, uniquelocal');
+  // Not announced: the framework's name and version are no help to anyone who reaches the API
+  app.getHttpAdapter().getInstance().disable('x-powered-by');
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
   // Compose files can be up to 256 KB
   app.use(json({ limit: '1mb' }));

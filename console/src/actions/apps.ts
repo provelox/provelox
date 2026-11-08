@@ -17,9 +17,9 @@ const appName = z
   .string()
   .refine((v) => APP_NAME_RE.test(v), 'Invalid app name');
 // Creating an app follows the stricter naming rule
-const newAppName = z.string().refine(isNewAppNameAllowed, (v) => ({
-  message: explainAppName(v) ?? 'Invalid app name',
-}));
+const newAppName = z.string().refine(isNewAppNameAllowed, {
+  error: (issue) => explainAppName(String(issue.input)) ?? 'Invalid app name',
+});
 
 /** The only fields the console may change on an app. Anything else is rejected. */
 const patchSchema = z

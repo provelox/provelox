@@ -9,6 +9,7 @@ import {
   ValidationError,
 } from '../common/errors';
 import { SecretBox } from '../common/secret-box';
+import { unsafeResolved } from '../common/url-safety';
 import { CONFIG, type Config } from '../config/config';
 import { hostsOf } from '../proxy/traefik-labels';
 import { SettingsService } from '../system/settings.service';
@@ -249,7 +250,12 @@ export class SsoService {
     if (known) return known;
     let doc: Record<string, unknown>;
     try {
-      const res = await this.fetcher(discoveryUrl(p.issuer as string));
+      // The issuer is set by an admin, but it is still a fetch from the server: same rule as webhooks and registries,
+      // so a name that points at a metadata or link-local address is refused before anything is requested
+      const target = new URL(discoveryUrl(p.issuer as string));
+      const unsafe = await unsafeResolved(target);
+      if (unsafe) throw new Error(unsafe);
+      const res = await this.fetcher(target.toString());
       if (!res.ok) throw new Error(`answered ${res.status}`);
       doc = (await res.json()) as Record<string, unknown>;
     } catch (e) {

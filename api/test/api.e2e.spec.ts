@@ -56,6 +56,11 @@ describe('Provelox API (HTTP)', () => {
   afterAll(() => app.close());
 
   describe('auth', () => {
+    it('does not announce the framework', async () => {
+      const res = await http.get('/health').expect(200);
+      expect(res.headers['x-powered-by']).toBeUndefined();
+    });
+
     it('serves health without a token', async () => {
       await http.get('/health').expect(200, { status: 'ok' });
     });

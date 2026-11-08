@@ -160,6 +160,25 @@ describe('SsoService providers', () => {
     ).rejects.toThrow(/endpoints/);
   });
 
+  it('will not fetch an issuer that points at a metadata address', async () => {
+    const s = makeStack(ENV);
+    const calls: string[] = [];
+    s.sso.fetcher = async (url) => {
+      calls.push(url);
+      return { ok: true, status: 200, json: async () => ({}) };
+    };
+    await expect(
+      s.sso.save('idp', {
+        kind: 'oidc',
+        label: 'X',
+        clientId: 'c',
+        clientSecret: 's',
+        issuer: 'http://169.254.169.254',
+      }),
+    ).rejects.toThrow();
+    expect(calls).toEqual([]);
+  });
+
   it('will not remove a provider an app still uses', async () => {
     const s = await setup();
     expect(() => s.sso.remove('idp')).toThrow(/site/);

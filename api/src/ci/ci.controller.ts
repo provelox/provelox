@@ -17,9 +17,17 @@ import { AppsService } from '../apps/apps.service';
 import { DeploymentsService } from '../apps/deployments.service';
 import { Public } from '../auth/public.decorator';
 import { ValidationError } from '../common/errors';
+import {
+  imageRepository,
+  parseImageRepository,
+} from '../common/image-repository';
 import { CiKeysService } from './ci-keys.service';
 
-const create = z.object({ app: z.string().max(60), name: z.string().max(200) });
+const create = z.object({
+  app: z.string().max(60),
+  name: z.string().max(200),
+  repository: z.string().max(300).optional(),
+});
 const deploy = z.object({ image: z.string().max(300) });
 
 /** Management of deploy keys (signed-in admin). */
@@ -35,14 +43,33 @@ export class CiKeysController {
     return this.keys.list(app || undefined);
   }
 
-  /** The `key` in the response is the only time it is ever shown. */
+  /**
+   * The `key` in the response is the only time it is ever shown. The key may deploy the image repository it is given;
+   * without one, the app's current image repository. An app with no image needs one given.
+   */
   @Post()
   create(@Body() body: unknown) {
     const parsed = create.safeParse(body);
     if (!parsed.success)
-      throw new ValidationError('Send { "app": "...", "name": "..." }.');
-    this.apps.getDefinition(parsed.data.app); // 404 for unknown apps
-    return this.keys.create(parsed.data.app, parsed.data.name);
+      throw new ValidationError(
+        'Send { "app": "...", "name": "...", "repository": "ghcr.io/you/app" }.',
+      );
+    const app = this.apps.getDefinition(parsed.data.app); // 404 for unknown apps
+    let repository: string | null = null;
+    if (parsed.data.repository?.trim()) {
+      repository = parseImageRepository(parsed.data.repository);
+      if (!repository)
+        throw new ValidationError(
+          'The image must be a repository, like ghcr.io/acme/web (a tag is not needed).',
+        );
+    } else if (app.image) {
+      repository = imageRepository(app.image);
+    }
+    if (!repository)
+      throw new ValidationError(
+        'Name the image this key may deploy, like ghcr.io/acme/web. The app has no image yet.',
+      );
+    return this.keys.create(parsed.data.app, parsed.data.name, repository);
   }
 
   @Delete(':id')
@@ -75,10 +102,10 @@ export class CiController {
     const parsed = deploy.safeParse(body);
     if (!parsed.success)
       throw new ValidationError('Send { "image": "registry/name:tag" }.');
-    // A deploy key rolls the app to a new version of its image; the first deploy may name the image. A leaked key
-    // therefore cannot run something else with the app's secrets and data.
+    // A deploy key may only run the image repository it was created for. A leaked key therefore cannot run something
+    // else with the app's secrets and data, even before the app has its first image.
     this.apps.assertSameImageRepository(key.app, parsed.data.image, {
-      allowFirstDeploy: true,
+      keyRepository: key.repository,
     });
     const view = await this.apps.deploy(key.app, parsed.data.image);
     this.keys.recordUse(key.id, view.app.image);

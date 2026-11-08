@@ -64,6 +64,18 @@ export function CreateKeyForm({
               className="w-56"
             />
           </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="key-image" className="text-xs font-medium">
+              Image
+            </label>
+            <Input
+              id="key-image"
+              name="repository"
+              placeholder="ghcr.io/acme/web"
+              maxLength={300}
+              className="w-64"
+            />
+          </div>
           {fixedApp ? (
             <input type="hidden" name="appName" value={fixedApp} />
           ) : (
@@ -86,6 +98,11 @@ export function CreateKeyForm({
             Create key
           </SubmitButton>
         </form>
+        <p className="text-xs text-muted-foreground">
+          The key can deploy only that image repository, not another one. Leave
+          Image empty to use the app&rsquo;s current image; an app with no image
+          yet needs one here.
+        </p>
         {state.error && (
           <p role="alert" className="text-sm text-destructive">
             {state.error}

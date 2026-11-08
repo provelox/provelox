@@ -27,6 +27,7 @@ import {
 } from '../docker/docker.port';
 import { GroupsService } from '../groups/groups.service';
 import { CiKeysService } from '../ci/ci-keys.service';
+import { imageRepository } from '../common/image-repository';
 import { RegistriesService } from '../registries/registries.service';
 import { PlaceholderService } from '../system/placeholder.service';
 import { SettingsService } from '../system/settings.service';
@@ -639,19 +640,29 @@ export class AppsService implements OnApplicationBootstrap {
     return { name: s.name, created, deployed };
   }
 
-  /** A token may only deploy another version of the image the app already runs. */
+  /**
+   * Checks an image a token or deploy key asks to run. It must be in the app's current repository when the app has one,
+   * and in the repository the key was created for when it has one. A token has no key repository, so it only rolls the
+   * app's current image forward. An app with no image can only get one from a key that names it.
+   */
   assertSameImageRepository(
     name: string,
     image: string,
-    opts: { allowFirstDeploy?: boolean } = {},
+    opts: { keyRepository?: string | null } = {},
   ) {
     const current = this.getDefinition(name).image;
-    if (!current && opts.allowFirstDeploy) return;
-    const repo = (i: string) =>
-      i.replace(/@sha256:[a-f0-9]+$/i, '').replace(/:[^/:]+$/, '');
-    if (!current || repo(current).toLowerCase() !== repo(image).toLowerCase())
+    const sameRepo = (a: string, b: string) =>
+      imageRepository(a).toLowerCase() === imageRepository(b).toLowerCase();
+    if (!current && !opts.keyRepository)
       throw new ForbiddenError(
-        'This key or token can deploy another version of the image the app runs, not a different image. Sign in as the admin to change the image.',
+        'The app has no image yet. Sign in as the admin to set one, or use a deploy key that names its image.',
+      );
+    if (
+      (current && !sameRepo(current, image)) ||
+      (opts.keyRepository && !sameRepo(opts.keyRepository, image))
+    )
+      throw new ForbiddenError(
+        'This key or token can deploy another version of the image, not a different image. Sign in as the admin to change the image.',
       );
   }
 

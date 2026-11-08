@@ -12,6 +12,8 @@ export interface CiKeyView {
   id: string;
   name: string;
   app: string;
+  /** The image repository this key may deploy. Null for keys made before it was recorded. */
+  repository: string | null;
   createdAt: string;
   lastUsedAt: string | null;
   lastUsedImage: string | null;
@@ -21,6 +23,7 @@ interface Row {
   id: string;
   name: string;
   app: string;
+  repository: string | null;
   secret_hash: string;
   created_at: string;
   last_used_at: string | null;
@@ -47,6 +50,7 @@ export class CiKeysService {
     id: r.id,
     name: r.name,
     app: r.app,
+    repository: r.repository,
     createdAt: r.created_at,
     lastUsedAt: r.last_used_at,
     lastUsedImage: r.last_used_image,
@@ -67,8 +71,15 @@ export class CiKeysService {
     return rows.map(this.view);
   }
 
-  /** The caller must have checked that the app exists. The returned `key` is shown to the user exactly once. */
-  create(app: string, rawName: string): { key: string; info: CiKeyView } {
+  /**
+   * The caller must have checked that the app exists and that `repository` is a repository (see
+   * parseImageRepository). The returned `key` is shown to the user exactly once.
+   */
+  create(
+    app: string,
+    rawName: string,
+    repository: string,
+  ): { key: string; info: CiKeyView } {
     const name = rawName.trim();
     if (!name) throw new ValidationError('Give the key a name.');
     if (name.length > 60)
@@ -79,6 +90,7 @@ export class CiKeysService {
       id,
       name,
       app,
+      repository,
       secret_hash: sha(secret).toString('hex'),
       created_at: new Date().toISOString(),
       last_used_at: null,
@@ -86,9 +98,16 @@ export class CiKeysService {
     };
     this.db.raw
       .prepare(
-        'INSERT INTO ci_keys (id, name, app, secret_hash, created_at) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO ci_keys (id, name, app, repository, secret_hash, created_at) VALUES (?, ?, ?, ?, ?, ?)',
       )
-      .run(row.id, row.name, row.app, row.secret_hash, row.created_at);
+      .run(
+        row.id,
+        row.name,
+        row.app,
+        row.repository,
+        row.secret_hash,
+        row.created_at,
+      );
     return { key: `pvxk_${id}_${secret}`, info: this.view(row) };
   }
 

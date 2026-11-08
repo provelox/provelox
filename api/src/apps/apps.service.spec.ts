@@ -1060,21 +1060,51 @@ describe('AppsService platform addresses at creation', () => {
     await apps.create({ name: 'api', defaultSubdomain: true });
   });
 
-  it('lets a deploy key name the image once, then only roll it forward', async () => {
+  it('lets a key deploy the repository it was made for, from the first deploy on', async () => {
     const { apps } = setup();
     await apps.create({ name: 'site' });
+    // an app with no image yet: only a key that names one may deploy it
     apps.assertSameImageRepository('site', 'ghcr.io/acme/site:1', {
-      allowFirstDeploy: true,
+      keyRepository: 'ghcr.io/acme/site',
     });
     await apps.deploy('site', 'ghcr.io/acme/site:1');
     apps.assertSameImageRepository('site', 'ghcr.io/acme/site:2', {
-      allowFirstDeploy: true,
+      keyRepository: 'ghcr.io/acme/site',
     });
     expect(() =>
       apps.assertSameImageRepository('site', 'evil/miner:1', {
-        allowFirstDeploy: true,
+        keyRepository: 'ghcr.io/acme/site',
       }),
     ).toThrow(/different image/);
+  });
+
+  it('refuses a first deploy by a key that names no repository, or by a token', async () => {
+    const { apps } = setup();
+    await apps.create({ name: 'site' });
+    expect(() =>
+      apps.assertSameImageRepository('site', 'ghcr.io/acme/site:1', {
+        keyRepository: null,
+      }),
+    ).toThrow(/no image yet/);
+    expect(() =>
+      apps.assertSameImageRepository('site', 'ghcr.io/acme/site:1'),
+    ).toThrow(/no image yet/);
+  });
+
+  it('refuses a key whose repository is not the app’s current one', async () => {
+    const { apps } = setup();
+    await apps.create({ name: 'site' });
+    await apps.deploy('site', 'ghcr.io/acme/site:1');
+    // the admin moved the app to another repository: the key was made for the old one
+    expect(() =>
+      apps.assertSameImageRepository('site', 'ghcr.io/acme/site:2', {
+        keyRepository: 'ghcr.io/acme/old',
+      }),
+    ).toThrow(/different image/);
+    // a key made before repositories were recorded still only rolls the current image forward
+    apps.assertSameImageRepository('site', 'ghcr.io/acme/site:2', {
+      keyRepository: null,
+    });
   });
 });
 

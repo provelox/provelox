@@ -729,6 +729,47 @@ describe('Provelox API (HTTP)', () => {
   });
 
   describe('CI deploy keys', () => {
+    it('needs the image a key may deploy when the app has none yet', async () => {
+      await http
+        .post('/v1/apps')
+        .set(auth())
+        .send({ name: 'fresh-app' })
+        .expect(201);
+      // no repository given and no image yet: nothing for the key to be limited to
+      await http
+        .post('/v1/ci-keys')
+        .set(auth())
+        .send({ app: 'fresh-app', name: 'CI' })
+        .expect(400);
+      // a repository with a tag is taken as the repository
+      const k = await http
+        .post('/v1/ci-keys')
+        .set(auth())
+        .send({
+          app: 'fresh-app',
+          name: 'CI',
+          repository: 'ghcr.io/acme/fresh:1',
+        })
+        .expect(201);
+      expect(k.body.info.repository).toBe('ghcr.io/acme/fresh');
+      // the first deploy must be that repository
+      await http
+        .post('/v1/ci/deploy')
+        .set({ Authorization: `Bearer ${k.body.key}` })
+        .send({ image: 'evil/miner:1' })
+        .expect(403);
+      await http
+        .post('/v1/ci/deploy')
+        .set({ Authorization: `Bearer ${k.body.key}` })
+        .send({ image: 'ghcr.io/acme/fresh:1' })
+        .expect(202);
+      await http
+        .delete(`/v1/ci-keys/${k.body.info.id}`)
+        .set(auth())
+        .expect(204);
+      await http.delete('/v1/apps/fresh-app').set(auth());
+    });
+
     it('lets a pipeline deploy its one app and nothing else', async () => {
       await http
         .post('/v1/apps')
@@ -743,7 +784,7 @@ describe('Provelox API (HTTP)', () => {
       const created = await http
         .post('/v1/ci-keys')
         .set(auth())
-        .send({ app: 'ci-app', name: 'GitHub' })
+        .send({ app: 'ci-app', name: 'GitHub', repository: 'acme/ci' })
         .expect(201);
       const key = created.body.key as string;
       expect(key).toMatch(/^pvxk_/);
@@ -819,7 +860,7 @@ describe('Provelox API (HTTP)', () => {
       const c = await http
         .post('/v1/ci-keys')
         .set(auth())
-        .send({ app: 'rev-app', name: 'k' })
+        .send({ app: 'rev-app', name: 'k', repository: 'x' })
         .expect(201);
       await http
         .delete(`/v1/ci-keys/${c.body.info.id}`)

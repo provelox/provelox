@@ -69,6 +69,36 @@ export function splitWho(text: string): {
   };
 }
 
+/**
+ * Email providers that anyone can open an account with. A domain of theirs in a sign-in list lets in every one of
+ * their accounts, not only the people the app means, so the form warns about it (it does not refuse it: a small
+ * team may really use one).
+ */
+export const PUBLIC_MAIL_DOMAINS: readonly string[] = [
+  'gmail.com',
+  'googlemail.com',
+  'outlook.com',
+  'hotmail.com',
+  'live.com',
+  'msn.com',
+  'yahoo.com',
+  'icloud.com',
+  'me.com',
+  'aol.com',
+  'proton.me',
+  'protonmail.com',
+  'gmx.com',
+  'mail.com',
+  'yandex.com',
+  'zoho.com',
+];
+
+/** The domains in a sign-in list that are public providers, as typed (without the @), case ignored. */
+export function publicMailDomains(domains: string[]): string[] {
+  const known = new Set(PUBLIC_MAIL_DOMAINS);
+  return domains.filter((d) => known.has(d.trim().toLowerCase()));
+}
+
 export function ssoId(label: string): string {
   return label
     .toLowerCase()

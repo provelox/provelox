@@ -13,6 +13,8 @@ export interface CreateKeyState {
 const schema = z.object({
   name: z.string().trim().min(1, 'Give the key a name').max(60),
   appName: z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}$/, 'Choose an app'),
+  // The image repository the key may deploy. Empty means the app's current image.
+  repository: z.string().trim().max(300),
 });
 
 export async function createApiKeyAction(
@@ -22,15 +24,18 @@ export async function createApiKeyAction(
   const parsed = schema.safeParse({
     name: formData.get('name'),
     appName: formData.get('appName'),
+    repository: formData.get('repository') ?? '',
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
-  const { name, appName } = parsed.data;
+  const { name, appName, repository } = parsed.data;
 
   const result = await asUser((token) =>
     api<{ key: string }>('ci-keys', {
       method: 'POST',
       token,
-      body: { app: appName, name },
+      body: repository
+        ? { app: appName, name, repository }
+        : { app: appName, name },
     }),
   );
 

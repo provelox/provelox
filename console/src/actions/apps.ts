@@ -589,7 +589,12 @@ export async function createAppWizardAction(
       const created = await api<{ key: string }>('ci-keys', {
         method: 'POST',
         token,
-        body: { app: v.name, name: v.ciKeyName },
+        // The key may deploy the image the wizard was given (the API takes its repository, without the tag)
+        body: {
+          app: v.name,
+          name: v.ciKeyName,
+          repository: v.image || undefined,
+        },
       });
       ciKey = created.key;
     });

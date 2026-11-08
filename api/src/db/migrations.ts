@@ -38,4 +38,7 @@ export const MIGRATIONS: string[] = [
   CREATE INDEX activity_target ON activity (target, id);
   CREATE INDEX activity_at ON activity (at);
   `,
+  `
+  ALTER TABLE ci_keys ADD COLUMN repository TEXT;
+  `,
 ];

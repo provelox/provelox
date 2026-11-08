@@ -86,7 +86,7 @@ describe('AppsService.rename', () => {
 
   it('moves deploy keys and usage history with it', async () => {
     const { apps, ciKeys, db } = await setup();
-    ciKeys.create('old', 'ci');
+    ciKeys.create('old', 'ci', 'ghcr.io/acme/old');
     db.raw
       .prepare('INSERT INTO usage_samples VALUES (?, ?, ?, ?)')
       .run('old', 1, 0.5, 100);

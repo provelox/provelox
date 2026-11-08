@@ -29,6 +29,7 @@ import { parsePaths } from '@/lib/basic-auth';
 import {
   KIND_HELP,
   KIND_LABEL,
+  publicMailDomains,
   splitWho,
   type SsoInfo,
   type SsoKind,
@@ -185,6 +186,18 @@ export function SsoCard({
               next request.
             </span>
           </label>
+          {publicMailDomains(rules.domains).length > 0 && (
+            <p
+              role="note"
+              className="text-xs text-amber-600 dark:text-amber-400"
+            >
+              {publicMailDomains(rules.domains)
+                .map((d) => `@${d}`)
+                .join(', ')}{' '}
+              lets in everyone with an account there, not only the people you
+              mean. Add their addresses one by one instead.
+            </p>
+          )}
 
           <label className="flex flex-col gap-1.5 text-sm font-medium">
             Paths that stay open (optional)

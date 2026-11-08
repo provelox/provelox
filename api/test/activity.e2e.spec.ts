@@ -130,7 +130,11 @@ describe('Activity log (HTTP)', () => {
     const ci = await http
       .post('/v1/ci-keys')
       .set(auth())
-      .send({ app: 'vault', name: 'probe-key' })
+      .send({
+        app: 'vault',
+        name: 'probe-key',
+        repository: 'ghcr.io/acme/vault',
+      })
       .expect(201);
 
     const log = await events('?limit=200');
@@ -191,7 +195,11 @@ describe('Activity log (HTTP)', () => {
     const key = await http
       .post('/v1/ci-keys')
       .set(auth())
-      .send({ app: 'ci-target', name: 'GitHub Actions' })
+      .send({
+        app: 'ci-target',
+        name: 'GitHub Actions',
+        repository: 'acme/ci',
+      })
       .expect(201);
     await http
       .post('/v1/ci/deploy')

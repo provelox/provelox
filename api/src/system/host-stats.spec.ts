@@ -13,7 +13,7 @@ const probe = (over: Partial<HostProbe> = {}): HostProbe => ({
   freemem: () => 500_000_000,
   uptime: () => 90061.7,
   meminfo: () => 'MemTotal: 7812500 kB\nMemAvailable:    3906250 kB\n',
-  statfs: () => ({ blocks: 1000, bavail: 250, bsize: 4096 }),
+  statfs: () => ({ blocks: 1000, bfree: 300, bavail: 250, bsize: 4096 }),
   ...over,
 });
 
@@ -33,10 +33,30 @@ describe('readHostStats', () => {
       cpus: 4,
       load: [0.5, 1, 1.5],
       diskPath: '/data',
-      diskTotalBytes: 1000 * 4096,
+      // 700 used + 250 available: the 50 reserved blocks are not part of the total
+      diskTotalBytes: 950 * 4096,
       diskFreeBytes: 250 * 4096,
       uptimeSeconds: 90061,
     });
+  });
+  it('agrees with df on how full the disk is (the reserved blocks are not counted as used)', async () => {
+    // console.atl1: df reports 158G size, 14G used, 137G avail, so the 7G in between is reserved for root (ext4)
+    const GB = 1024 ** 3;
+    const bsize = 4096;
+    const s = readHostStats(
+      '/',
+      probe({
+        statfs: () => ({
+          blocks: (158 * GB) / bsize,
+          bfree: (144 * GB) / bsize,
+          bavail: (137 * GB) / bsize,
+          bsize,
+        }),
+      }),
+    );
+    const used = (s.diskTotalBytes - s.diskFreeBytes) / s.diskTotalBytes;
+    const dfUsePercent = 14 / (14 + 137); // df's own Use%: used / (used + avail)
+    expect(used).toBeCloseTo(dfUsePercent, 3);
   });
   it('gives zero disk instead of failing when the path cannot be read', () => {
     const s = readHostStats(

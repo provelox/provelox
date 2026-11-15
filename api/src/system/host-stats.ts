@@ -34,7 +34,12 @@ export interface HostProbe {
   freemem(): number;
   uptime(): number;
   meminfo(): string | null;
-  statfs(path: string): { blocks: number; bavail: number; bsize: number };
+  statfs(path: string): {
+    blocks: number;
+    bfree: number;
+    bavail: number;
+    bsize: number;
+  };
   /** The share of processor time spent working since the previous call, 0 to 100; null when unknown */
   cpuBusy?(): number | null;
   /** Contents of /proc/pressure/<name>, null when the kernel has none */
@@ -122,7 +127,14 @@ export function readHostStats(
   let disk = { total: 0, free: 0 };
   try {
     const s = probe.statfs(diskPath);
-    disk = { total: s.blocks * s.bsize, free: s.bavail * s.bsize };
+    // What `df` calls Use% is used / (used + avail). The filesystem's reserved blocks (bfree - bavail, about 5% on ext4,
+    // kept for root) are neither used nor available to anyone else, so they are left out of the total. Then
+    // total - free is what is really used, and the hub's percentage agrees with `df`.
+    const used = s.blocks - s.bfree;
+    disk = {
+      total: (used + s.bavail) * s.bsize,
+      free: s.bavail * s.bsize,
+    };
   } catch {
     // a missing path is a reading of zero, not a failed summary
   }

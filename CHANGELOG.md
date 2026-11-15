@@ -2,6 +2,13 @@
 
 What changed in each release, newest first. Security fixes say what was wrong and who could have used it.
 
+## 0.6.1
+
+A fix release. Nothing stored changes, so no data needs copying first.
+
+### Console
+- **Phone layout.** Dialogs are never taller than the screen and scroll, so the top of a tall one is no longer cut off and out of reach. The app picker in "Move apps into a project" no longer runs past the dialog's edge when image names are long; names stay whole and the list scrolls. The DNS records of the add-domain wizard are one column on a phone, so the value is readable, and the wizard's steps wrap instead of running off the screen.
+
 ## 0.6.0
 
 0.5.3 and 0.5.4 shipped without notes. This section covers everything since 0.5.2, including what they changed. Before 1.0 a minor release can change what Provelox stores, so this one is marked careful: **copy the data volume first** (`pvx-provelox-data`). The update notice shows the same warning.

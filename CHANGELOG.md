@@ -4,13 +4,16 @@ What changed in each release, newest first. Security fixes say what was wrong an
 
 ## 0.6.0
 
-Deploy keys are tied to an image repository, the host disk figure is accurate, and a few security tightenings. Before 1.0 a minor release can change what Provelox stores: this one adds a column to the deploy keys table (`ci_keys.repository`). **Copy the data volume first** (`pvx-provelox-data`), as for any minor release before 1.0. The update check shows the same warning.
+0.5.3 and 0.5.4 shipped without notes. This section covers everything since 0.5.2, including what they changed. Before 1.0 a minor release can change what Provelox stores, so this one is marked careful: **copy the data volume first** (`pvx-provelox-data`). The update notice shows the same warning.
 
-### Deploy keys
-- **A deploy key now records the image repository it was made for.** It can roll its app to a new tag of that repository, and to nothing else. The key form asks for the repository; left empty, the app's current image is used.
-- **Keys made before 0.6.0 have no recorded repository.** They keep rolling the app's current image forward. On an app that has no image yet they are refused, so create those keys again. Keys for apps that already run an image keep working.
+### Deploy keys (shipped in 0.5.4)
+- **A deploy key records the image repository it was made for.** It can roll its app to a new tag of that repository, and to nothing else. The key form asks for the repository; left empty, the app's current image is used. This is the schema change in this release: `ci_keys.repository`, nullable and additive. Instances updated to 0.5.4 already have the column.
+- **Keys made before 0.5.4 have no recorded repository.** They keep rolling the app's current image forward. On an app that has no image yet they are refused, so create those keys again. Keys for apps that already run an image keep working.
 - **A key can no longer set the first image of an app** that has none. The old rule let a leaked key choose what runs with an app's variables and data.
 - Deploy from GitHub Actions with the [provelox/deploy](https://github.com/provelox/deploy) action (`uses: provelox/deploy@v1`). It waits for the deploy and fails on a rollback, a failed start, or a Provelox that restarts and loses track of the deploy.
+
+### Helpers and volumes (shipped in 0.5.3)
+- **Helper containers leave no anonymous volumes.** Each host scan used to leave one behind (about 4,000 on one server). Helpers now run with a temporary filesystem where their image declares a volume, and deleting volumes is batched.
 
 ### Console
 - **The host's disk figure matches `df`.** It counted the blocks the filesystem reserves for root as used, so a 157 GB disk with 14 GB used showed 14% instead of 9%. The total is now the space users can use.
@@ -18,7 +21,6 @@ Deploy keys are tied to an image repository, the host disk figure is accurate, a
 - Dependency update: zod 4.6.7, which clears a high-severity advisory (memory exhaustion when validating oversized collections).
 
 ### API
-- **Helper containers leave no anonymous volumes.** Each host scan used to leave a volume behind (about 4,000 on one server). Helpers now run with a temporary filesystem where their image declares a volume, and deleting volumes is batched.
 - **Sign-in allow-lists warn** when a public mail provider's domain (gmail.com, outlook.com and the like) is on the list. The warning does not block saving.
 - The OpenID Connect issuer is checked before the API fetches it, as webhook and registry addresses already are.
 - The API no longer sends an `X-Powered-By` header.

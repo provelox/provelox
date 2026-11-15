@@ -181,7 +181,10 @@ function WizardBody({
         </DialogDescription>
       </DialogHeader>
 
-      <ol className="flex items-center gap-2 text-sm" aria-label="Steps">
+      <ol
+        className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
+        aria-label="Steps"
+      >
         {STEPS.map((label, i) => (
           <li key={label} className="flex items-center gap-2">
             <span
@@ -208,7 +211,7 @@ function WizardBody({
               {label}
             </span>
             {i < STEPS.length - 1 && (
-              <span aria-hidden className="h-px w-5 bg-border" />
+              <span aria-hidden className="h-px w-3 bg-border sm:w-5" />
             )}
           </li>
         ))}

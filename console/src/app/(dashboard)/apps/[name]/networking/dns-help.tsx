@@ -198,7 +198,7 @@ function RecordList({ records }: { records: DnsRecord[] }) {
       {records.map((r) => (
         <div
           key={`${r.type}:${r.value}`}
-          className="grid grid-cols-[3.5rem_minmax(0,1fr)] gap-x-3 gap-y-1 p-3 sm:grid-cols-[3.5rem_minmax(0,1fr)_minmax(0,1.4fr)]"
+          className="grid grid-cols-1 gap-x-3 gap-y-1 p-3 sm:grid-cols-[3.5rem_minmax(0,1fr)_minmax(0,1.4fr)]"
         >
           <span className="font-mono text-xs font-semibold">{r.type}</span>
           <Field label="Name" value={r.name} hint={r.host} />

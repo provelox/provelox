@@ -153,9 +153,9 @@ export function GroupAppsDialog({
           </DialogDescription>
         </DialogHeader>
         {pick ? (
-          <fieldset className="flex flex-col gap-1">
+          <fieldset className="flex min-w-0 flex-col gap-1">
             <legend className="mb-1 text-sm font-medium">Apps</legend>
-            <div className="flex max-h-56 flex-col gap-1 overflow-y-auto">
+            <div className="flex min-w-0 max-h-56 flex-col gap-1 overflow-y-auto">
               {movable === null && (
                 <p className="text-sm text-muted-foreground">Loading…</p>
               )}
@@ -167,7 +167,7 @@ export function GroupAppsDialog({
               {movable?.map((a) => (
                 <label
                   key={a.name}
-                  className="flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2 text-sm"
+                  className="flex min-w-0 cursor-pointer items-center gap-3 rounded-md border px-3 py-2 text-sm"
                 >
                   <Checkbox
                     checked={chosen.includes(a.name)}
@@ -177,8 +177,8 @@ export function GroupAppsDialog({
                       )
                     }
                   />
-                  <span className="font-mono">{a.name}</span>
-                  <span className="truncate font-mono text-xs text-muted-foreground">
+                  <span className="shrink-0 font-mono">{a.name}</span>
+                  <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">
                     {a.image}
                   </span>
                 </label>
@@ -270,7 +270,7 @@ export function AddExistingAppsDialog({
             happens before anything is touched.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex max-h-72 flex-col gap-1 overflow-y-auto">
+        <div className="flex min-w-0 max-h-72 flex-col gap-1 overflow-y-auto">
           {list === null && (
             <p className="text-sm text-muted-foreground">Loading…</p>
           )}
@@ -282,7 +282,7 @@ export function AddExistingAppsDialog({
           {list?.map((a) => (
             <label
               key={a.name}
-              className="flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2 text-sm"
+              className="flex min-w-0 cursor-pointer items-center gap-3 rounded-md border px-3 py-2 text-sm"
             >
               <Checkbox
                 checked={chosen.includes(a.name)}
@@ -292,8 +292,8 @@ export function AddExistingAppsDialog({
                   )
                 }
               />
-              <span className="font-mono">{a.name}</span>
-              <span className="truncate font-mono text-xs text-muted-foreground">
+              <span className="shrink-0 font-mono">{a.name}</span>
+              <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">
                 {a.image}
               </span>
             </label>

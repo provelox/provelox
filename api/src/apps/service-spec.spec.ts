@@ -81,9 +81,24 @@ describe('buildServiceSpec', () => {
       }),
       ctx,
     ).TaskTemplate.ContainerSpec;
-    expect(c.Env).toEqual(['A=1']);
+    expect(c.Env).toEqual(['HOSTNAME=0.0.0.0', 'A=1']);
     expect(c.Args).toEqual(['serve']);
     expect(c.Command).toEqual(['/bin/sh', '-c']);
+  });
+
+  describe('HOSTNAME', () => {
+    const env = (app = makeApp()) =>
+      buildServiceSpec(app, ctx).TaskTemplate.ContainerSpec.Env;
+
+    it('listens on every address unless the app sets HOSTNAME itself', () => {
+      expect(env()).toEqual(['HOSTNAME=0.0.0.0']);
+    });
+
+    it("keeps the app's own HOSTNAME and sets it only once", () => {
+      expect(
+        env(makeApp({ env: [{ key: 'HOSTNAME', value: 'db.internal' }] })),
+      ).toEqual(['HOSTNAME=db.internal']);
+    });
   });
 
   describe('placement in a cluster', () => {

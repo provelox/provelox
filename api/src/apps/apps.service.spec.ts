@@ -122,7 +122,7 @@ describe('AppsService.update', () => {
     expect(docker.services.get('pvx-site')?.Mode.Replicated.Replicas).toBe(3);
     expect(
       docker.services.get('pvx-site')?.TaskTemplate.ContainerSpec.Env,
-    ).toEqual(['A=1']);
+    ).toEqual(['HOSTNAME=0.0.0.0', 'A=1']);
   });
 
   it('records pending host ports without publishing them', async () => {

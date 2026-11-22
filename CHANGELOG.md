@@ -2,6 +2,15 @@
 
 What changed in each release, newest first. Security fixes say what was wrong and who could have used it.
 
+## 0.6.2
+
+A fix release. Nothing stored changes, so no data needs copying first.
+
+**Read this before you update:** every app's container is re-created once after the update, because its settings change. Apps that can run more than one copy roll over one at a time with no downtime. An app that keeps data stops briefly while its new container starts, as it does on any update.
+
+### API
+- **Apps listen on every address.** Docker sets the container's `HOSTNAME` to its id, and Next.js apps bind to `HOSTNAME`. That made some apps listen on one address only, which the proxy could not reach, so visitors got a 502 Bad gateway until the app was restarted onto a container that bound correctly. Every app now gets `HOSTNAME=0.0.0.0` unless it sets `HOSTNAME` itself. An app that uses `HOSTNAME` for another purpose can set it to what it needs.
+
 ## 0.6.1
 
 A fix release. Nothing stored changes, so no data needs copying first.

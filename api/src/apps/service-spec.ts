@@ -21,6 +21,24 @@ export interface SpecContext extends RoutingContext {
   pinnedNode?: string | null;
 }
 
+/**
+ * Environment every app gets unless it sets the variable itself. Docker sets HOSTNAME to the container's id, and Next.js
+ * binds to HOSTNAME: that listens on one address only, which is not the one the proxy reaches, so the app answers 502.
+ * 0.0.0.0 listens on every address.
+ */
+export const DEFAULT_ENV: Record<string, string> = { HOSTNAME: '0.0.0.0' };
+
+/** The app's own variables, with the platform defaults for any it does not set */
+export function containerEnv(app: Pick<AppDefinition, 'env'>): string[] {
+  const own = new Set(app.env.map((e) => e.key));
+  return [
+    ...Object.entries(DEFAULT_ENV)
+      .filter(([key]) => !own.has(key))
+      .map(([key, value]) => `${key}=${value}`),
+    ...app.env.map((e) => `${e.key}=${e.value}`),
+  ];
+}
+
 /** Where the placeholder image serves its page from */
 export const PLACEHOLDER_FILE = '/usr/share/nginx/html/index.html';
 /** Where the placeholder image reads its server settings from */
@@ -100,7 +118,7 @@ export function buildServiceSpec(
   const container: Record<string, any> = {
     Image: app.image || ctx.placeholderImage,
     Labels: { [LABEL_MANAGED]: 'true', [LABEL_APP]: app.name },
-    Env: app.env.map((e) => `${e.key}=${e.value}`),
+    Env: containerEnv(app),
     Mounts: mounts,
   };
   if (!app.image && ctx.placeholder)
